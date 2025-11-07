@@ -49,16 +49,37 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/dashboard') ||
     request.nextUrl.pathname.startsWith('/records') ||
     request.nextUrl.pathname.startsWith('/room') ||
-    request.nextUrl.pathname.startsWith('/soap-review')
+    request.nextUrl.pathname.startsWith('/soap-review') ||
+    request.nextUrl.pathname.startsWith('/patient')
 
-  // Redirect authenticated users away from auth page
+  // Redirect authenticated users away from auth page based on role
   if (isAuthPage && session) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    const userRole = session.user.user_metadata?.role || 'doctor'
+    const redirectUrl = userRole === 'doctor' ? '/dashboard' : '/patient/dashboard'
+    return NextResponse.redirect(new URL(redirectUrl, request.url))
   }
 
   // Redirect unauthenticated users to auth page
   if (isProtectedRoute && !session) {
     return NextResponse.redirect(new URL('/auth', request.url))
+  }
+
+  // Role-based access control
+  if (session) {
+    const userRole = session.user.user_metadata?.role || 'doctor'
+    const isPatientRoute = request.nextUrl.pathname.startsWith('/patient')
+    const isDoctorRoute = request.nextUrl.pathname.startsWith('/dashboard') || 
+                          request.nextUrl.pathname.startsWith('/records')
+
+    // Redirect doctors trying to access patient routes
+    if (userRole === 'doctor' && isPatientRoute) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+
+    // Redirect patients trying to access doctor routes
+    if (userRole === 'patient' && isDoctorRoute) {
+      return NextResponse.redirect(new URL('/patient/dashboard', request.url))
+    }
   }
 
   return response

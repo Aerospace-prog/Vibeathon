@@ -73,6 +73,7 @@ export default function AuthPage() {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [role, setRole] = useState<'doctor' | 'patient'>('doctor')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -83,6 +84,11 @@ export default function AuthPage() {
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Compute email placeholder - only use after mounted to avoid hydration mismatch
+  const emailPlaceholder = mounted && mode === 'signup' 
+    ? (role === 'doctor' ? 'doctor@arogya.ai' : 'patient@arogya.ai')
+    : 'your.email@example.com'
 
   // Rotate quotes every 7 seconds
   useEffect(() => {
@@ -141,9 +147,10 @@ export default function AuthPage() {
         }
 
         if (data.session) {
-          console.log('Session created, redirecting to dashboard...')
-          // Use window.location for a full page reload to ensure cookies are set
-          window.location.href = '/dashboard'
+          console.log('Session created, redirecting...')
+          // Redirect based on user role
+          const userRole = data.session.user.user_metadata?.role || 'doctor'
+          window.location.href = userRole === 'doctor' ? '/dashboard' : '/patient/dashboard'
           return
         } else {
           setError('Sign in successful but no session created. Please try again.')
@@ -154,6 +161,11 @@ export default function AuthPage() {
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            data: {
+              role: role,
+            }
+          }
         })
 
         console.log('Sign up response:', { data, error: signUpError })
@@ -166,9 +178,9 @@ export default function AuthPage() {
         }
 
         if (data.session) {
-          console.log('Session created, redirecting to dashboard...')
-          // Use window.location for a full page reload to ensure cookies are set
-          window.location.href = '/dashboard'
+          console.log('Session created, redirecting...')
+          // Redirect based on role
+          window.location.href = role === 'doctor' ? '/dashboard' : '/patient/dashboard'
           return
         } else if (data.user && !data.session) {
           setError('Account created! Please check your email to confirm your account before signing in.')
@@ -348,22 +360,24 @@ export default function AuthPage() {
         </CardHeader>
 
         <CardContent className="relative">
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5" suppressHydrationWarning>
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-semibold text-teal-700 dark:text-teal-300 flex items-center gap-2">
                 <Heart size={16} className="animate-pulse-slow" />
                 Email Address
               </label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="doctor@arogya.ai"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={loading}
-                aria-invalid={!!error}
-                className="border-teal-200 dark:border-teal-800 focus:border-teal-500 focus:ring-teal-500 transition-all duration-300"
-              />
+              <div suppressHydrationWarning>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder={emailPlaceholder}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
+                  aria-invalid={!!error}
+                  className="border-teal-200 dark:border-teal-800 focus:border-teal-500 focus:ring-teal-500 transition-all duration-300"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -371,17 +385,58 @@ export default function AuthPage() {
                 <Stethoscope size={16} className="animate-pulse-slow" />
                 Password
               </label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={loading}
-                aria-invalid={!!error}
-                className="border-teal-200 dark:border-teal-800 focus:border-teal-500 focus:ring-teal-500 transition-all duration-300"
-              />
+              <div suppressHydrationWarning>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
+                  aria-invalid={!!error}
+                  className="border-teal-200 dark:border-teal-800 focus:border-teal-500 focus:ring-teal-500 transition-all duration-300"
+                />
+              </div>
             </div>
+
+            {/* Role Selection - Only show during signup */}
+            {mode === 'signup' && (
+              <div className="space-y-3">
+                <label className="text-sm font-semibold text-teal-700 dark:text-teal-300">
+                  I am a:
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setRole('doctor')}
+                    className={`p-4 border-2 rounded-xl transition-all duration-300 ${
+                      role === 'doctor'
+                        ? 'border-teal-500 bg-teal-50 dark:bg-teal-950/30 shadow-md'
+                        : 'border-zinc-200 dark:border-zinc-800 hover:border-teal-300 dark:hover:border-teal-700'
+                    }`}
+                  >
+                    <Stethoscope className={`w-6 h-6 mx-auto mb-2 ${role === 'doctor' ? 'text-teal-600 dark:text-teal-400' : 'text-zinc-400'}`} />
+                    <div className={`font-semibold text-sm ${role === 'doctor' ? 'text-teal-700 dark:text-teal-300' : 'text-zinc-600 dark:text-zinc-400'}`}>
+                      Doctor
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRole('patient')}
+                    className={`p-4 border-2 rounded-xl transition-all duration-300 ${
+                      role === 'patient'
+                        ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-950/30 shadow-md'
+                        : 'border-zinc-200 dark:border-zinc-800 hover:border-cyan-300 dark:hover:border-cyan-700'
+                    }`}
+                  >
+                    <Heart className={`w-6 h-6 mx-auto mb-2 ${role === 'patient' ? 'text-cyan-600 dark:text-cyan-400 animate-heartbeat' : 'text-zinc-400'}`} />
+                    <div className={`font-semibold text-sm ${role === 'patient' ? 'text-cyan-700 dark:text-cyan-300' : 'text-zinc-600 dark:text-zinc-400'}`}>
+                      Patient
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
 
             {error && (
               <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 p-3 rounded-lg border border-red-200 dark:border-red-800 animate-shake">
@@ -389,11 +444,12 @@ export default function AuthPage() {
               </div>
             )}
 
-            <Button 
-              type="submit" 
-              className="w-full bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white font-semibold py-6 rounded-lg shadow-lg shadow-teal-500/30 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]" 
-              disabled={loading}
-            >
+            <div suppressHydrationWarning>
+              <Button 
+                type="submit" 
+                className="w-full bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white font-semibold py-6 rounded-lg shadow-lg shadow-teal-500/30 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]" 
+                disabled={loading}
+              >
               {loading ? (
                 <span className="flex items-center gap-2">
                   <Activity className="w-5 h-5 animate-spin" />
@@ -405,7 +461,8 @@ export default function AuthPage() {
                   <Heart className="w-5 h-5 animate-heartbeat" />
                 </span>
               )}
-            </Button>
+              </Button>
+            </div>
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -418,19 +475,21 @@ export default function AuthPage() {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                setMode(mode === 'signin' ? 'signup' : 'signin')
-                setError('')
-              }}
-              className="w-full text-center text-sm font-medium text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors duration-200 py-2"
-              disabled={loading}
-            >
+            <div suppressHydrationWarning>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode(mode === 'signin' ? 'signup' : 'signin')
+                  setError('')
+                }}
+                className="w-full text-center text-sm font-medium text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors duration-200 py-2"
+                disabled={loading}
+              >
               {mode === 'signin'
                 ? '✨ Create your free account'
                 : '🔐 Sign in to your account'}
-            </button>
+              </button>
+            </div>
           </form>
 
           {/* Trust indicators */}

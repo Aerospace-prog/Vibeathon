@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Activity, Heart, Stethoscope, Globe, Zap, Shield, Users, Brain, Languages, FileText, Video, Sparkles, Dna } from 'lucide-react'
 import { TranslationDemo } from '@/components/landing/translation-demo'
 import { Medical3DIcon } from '@/components/landing/medical-3d-icon'
