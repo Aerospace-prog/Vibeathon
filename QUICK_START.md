@@ -1,5 +1,17 @@
 # Quick Start Guide - Testing Error Handling
 
+## Prerequisites
+
+⚠️ **IMPORTANT: Set up the database first!**
+
+If you see errors like "Could not find the table 'public.consultations'", you need to create the database tables.
+
+**Quick Fix (2 minutes):**
+1. Go to https://supabase.com/dashboard/project/YOUR_PROJECT_ID/sql
+2. Copy all content from `database/schema.sql`
+3. Paste and click **RUN**
+4. See `QUICK_DATABASE_FIX.md` for detailed steps
+
 ## Fastest Way to Test
 
 ### 1. Start Backend (Terminal 1)
