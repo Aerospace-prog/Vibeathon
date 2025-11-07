@@ -45,39 +45,62 @@ export default function AuthPage() {
 
     try {
       if (mode === 'signin') {
+        console.log('Attempting sign in...')
         const { data, error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
         })
 
+        console.log('Sign in response:', { data, error: signInError })
+
         if (signInError) {
+          console.error('Sign in error:', signInError)
           setError(signInError.message)
+          setLoading(false)
           return
         }
 
         if (data.session) {
-          router.push('/dashboard')
+          console.log('Session created, redirecting to dashboard...')
+          // Use window.location for a full page reload to ensure cookies are set
+          window.location.href = '/dashboard'
+          return
+        } else {
+          setError('Sign in successful but no session created. Please try again.')
+          setLoading(false)
         }
       } else {
+        console.log('Attempting sign up...')
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
         })
 
+        console.log('Sign up response:', { data, error: signUpError })
+
         if (signUpError) {
+          console.error('Sign up error:', signUpError)
           setError(signUpError.message)
+          setLoading(false)
           return
         }
 
         if (data.session) {
-          router.push('/dashboard')
+          console.log('Session created, redirecting to dashboard...')
+          // Use window.location for a full page reload to ensure cookies are set
+          window.location.href = '/dashboard'
+          return
+        } else if (data.user && !data.session) {
+          setError('Account created! Please check your email to confirm your account before signing in.')
+          setLoading(false)
         } else {
-          setError('Please check your email to confirm your account')
+          setError('Sign up successful but no user created. Please try again.')
+          setLoading(false)
         }
       }
     } catch (err) {
+      console.error('Unexpected error:', err)
       setError('An unexpected error occurred. Please try again.')
-    } finally {
       setLoading(false)
     }
   }
