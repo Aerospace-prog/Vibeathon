@@ -97,7 +97,7 @@ export default function AuthPage() {
       setTimeout(() => {
         setCurrentQuoteIndex((prev) => (prev + 1) % medicalQuotes.length)
         setFadeIn(true)
-      }, 500) // Wait for fade out before changing quote
+      }, 500)
     }, 7000)
 
     return () => clearInterval(interval)
@@ -148,7 +148,6 @@ export default function AuthPage() {
 
         if (data.session) {
           console.log('Session created, redirecting...')
-          // Redirect based on user role
           const userRole = data.session.user.user_metadata?.role || 'doctor'
           window.location.href = userRole === 'doctor' ? '/dashboard' : '/patient/dashboard'
           return
@@ -179,7 +178,6 @@ export default function AuthPage() {
 
         if (data.session) {
           console.log('Session created, redirecting...')
-          // Redirect based on role
           window.location.href = role === 'doctor' ? '/dashboard' : '/patient/dashboard'
           return
         } else if (data.user && !data.session) {
@@ -202,7 +200,7 @@ export default function AuthPage() {
       {/* Animated gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-teal-400/20 via-cyan-400/20 to-blue-400/20 animate-gradient-shift" />
       
-      {/* Animated particles/dots - Fixed positions to avoid hydration errors */}
+      {/* Animated particles/dots */}
       {mounted && (
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute w-1 h-1 bg-teal-400/30 rounded-full animate-particle" style={{ left: '15%', top: '20%', animationDelay: '0s', animationDuration: '18s' }} />
@@ -215,16 +213,6 @@ export default function AuthPage() {
           <div className="absolute w-1 h-1 bg-teal-400/30 rounded-full animate-particle" style={{ left: '90%', top: '40%', animationDelay: '1.8s', animationDuration: '16s' }} />
           <div className="absolute w-1 h-1 bg-teal-400/30 rounded-full animate-particle" style={{ left: '35%', top: '85%', animationDelay: '0.8s', animationDuration: '24s' }} />
           <div className="absolute w-1 h-1 bg-teal-400/30 rounded-full animate-particle" style={{ left: '75%', top: '25%', animationDelay: '2.2s', animationDuration: '19s' }} />
-          <div className="absolute w-1 h-1 bg-teal-400/30 rounded-full animate-particle" style={{ left: '20%', top: '45%', animationDelay: '1.2s', animationDuration: '21s' }} />
-          <div className="absolute w-1 h-1 bg-teal-400/30 rounded-full animate-particle" style={{ left: '55%', top: '65%', animationDelay: '3.5s', animationDuration: '18s' }} />
-          <div className="absolute w-1 h-1 bg-teal-400/30 rounded-full animate-particle" style={{ left: '40%', top: '10%', animationDelay: '0.3s', animationDuration: '22s' }} />
-          <div className="absolute w-1 h-1 bg-teal-400/30 rounded-full animate-particle" style={{ left: '80%', top: '55%', animationDelay: '2.8s', animationDuration: '20s' }} />
-          <div className="absolute w-1 h-1 bg-teal-400/30 rounded-full animate-particle" style={{ left: '30%', top: '75%', animationDelay: '1.3s', animationDuration: '17s' }} />
-          <div className="absolute w-1 h-1 bg-teal-400/30 rounded-full animate-particle" style={{ left: '65%', top: '35%', animationDelay: '3.2s', animationDuration: '23s' }} />
-          <div className="absolute w-1 h-1 bg-teal-400/30 rounded-full animate-particle" style={{ left: '12%', top: '90%', animationDelay: '0.7s', animationDuration: '19s' }} />
-          <div className="absolute w-1 h-1 bg-teal-400/30 rounded-full animate-particle" style={{ left: '88%', top: '65%', animationDelay: '2.3s', animationDuration: '21s' }} />
-          <div className="absolute w-1 h-1 bg-teal-400/30 rounded-full animate-particle" style={{ left: '50%', top: '20%', animationDelay: '1.7s', animationDuration: '18s' }} />
-          <div className="absolute w-1 h-1 bg-teal-400/30 rounded-full animate-particle" style={{ left: '22%', top: '55%', animationDelay: '3.8s', animationDuration: '24s' }} />
         </div>
       )}
       
@@ -450,17 +438,17 @@ export default function AuthPage() {
                 className="w-full bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white font-semibold py-6 rounded-lg shadow-lg shadow-teal-500/30 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]" 
                 disabled={loading}
               >
-              {loading ? (
-                <span className="flex items-center gap-2">
-                  <Activity className="w-5 h-5 animate-spin" />
-                  Processing...
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  {mode === 'signin' ? 'Sign In' : 'Create Account'}
-                  <Heart className="w-5 h-5 animate-heartbeat" />
-                </span>
-              )}
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <Activity className="w-5 h-5 animate-spin" />
+                    Processing...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    {mode === 'signin' ? 'Sign In' : 'Create Account'}
+                    <Heart className="w-5 h-5 animate-heartbeat" />
+                  </span>
+                )}
               </Button>
             </div>
 
@@ -485,9 +473,9 @@ export default function AuthPage() {
                 className="w-full text-center text-sm font-medium text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors duration-200 py-2"
                 disabled={loading}
               >
-              {mode === 'signin'
-                ? '✨ Create your free account'
-                : '🔐 Sign in to your account'}
+                {mode === 'signin'
+                  ? '✨ Create your free account'
+                  : '🔐 Sign in to your account'}
               </button>
             </div>
           </form>

@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { supabase } from '@/lib/supabase'
+import { Spinner } from '@/components/ui/spinner'
+import { toast } from 'sonner'
 
 export function StartCallButton() {
   const [isLoading, setIsLoading] = useState(false)
@@ -17,6 +19,7 @@ export function StartCallButton() {
       const { data: { session } } = await supabase.auth.getSession()
       
       if (!session) {
+        toast.error('Session expired. Please sign in again.')
         router.push('/auth')
         return
       }
@@ -35,6 +38,8 @@ export function StartCallButton() {
 
       // If no patients exist, create a demo patient
       if (!patientId || patientsError) {
+        toast.info('Creating demo patient...')
+        
         const { data: newPatient, error: createError } = await supabase
           .from('patients')
           .insert({
@@ -47,7 +52,8 @@ export function StartCallButton() {
 
         if (createError) {
           console.error('Error creating patient:', createError)
-          alert('Failed to create patient. Please try again.')
+          const errorMessage = createError.message || 'Failed to create patient. Please try again.'
+          toast.error(errorMessage)
           setIsLoading(false)
           return
         }
@@ -56,6 +62,8 @@ export function StartCallButton() {
       }
 
       // Create a new consultation record
+      toast.info('Starting consultation...')
+      
       const { data: consultation, error: consultationError } = await supabase
         .from('consultations')
         .insert({
@@ -70,16 +78,20 @@ export function StartCallButton() {
 
       if (consultationError) {
         console.error('Error creating consultation:', consultationError)
-        alert('Failed to start consultation. Please try again.')
+        const errorMessage = consultationError.message || 'Failed to start consultation. Please try again.'
+        toast.error(errorMessage)
         setIsLoading(false)
         return
       }
 
+      toast.success('Consultation started!')
+      
       // Navigate to the video call room
       router.push(`/consultation/${consultation.id}/room?userType=doctor`)
     } catch (error) {
       console.error('Unexpected error:', error)
-      alert('An unexpected error occurred. Please try again.')
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.'
+      toast.error(errorMessage)
       setIsLoading(false)
     }
   }
@@ -90,7 +102,14 @@ export function StartCallButton() {
       disabled={isLoading}
       className="w-full"
     >
-      {isLoading ? 'Starting...' : 'Start New Call'}
+      {isLoading ? (
+        <span className="flex items-center gap-2">
+          <Spinner size="sm" />
+          Starting...
+        </span>
+      ) : (
+        'Start New Call'
+      )}
     </Button>
   )
 }
