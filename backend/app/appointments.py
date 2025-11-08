@@ -66,6 +66,28 @@ async def create_appointment(
         # Skip availability check for now - table structure needs to be fixed
         logger.info("Skipping availability check - proceeding with booking")
         
+        # Fetch patient details from auth.users to get name and email
+        try:
+            patient_result = db.auth.admin.get_user_by_id(appointment.patient_id)
+            patient_user = patient_result.user if patient_result else None
+            
+            if patient_user:
+                # Try to get full_name from metadata, fall back to email username
+                patient_name = (
+                    patient_user.user_metadata.get('full_name') or 
+                    patient_user.user_metadata.get('name') or 
+                    patient_user.email.split('@')[0] if patient_user.email else 'Patient'
+                )
+                patient_email = patient_user.email or ''
+            else:
+                patient_name = 'Patient'
+                patient_email = ''
+                logger.warning(f"Could not fetch patient details for {appointment.patient_id}")
+        except Exception as e:
+            logger.error(f"Error fetching patient details: {e}")
+            patient_name = 'Patient'
+            patient_email = ''
+        
         # Create appointment
         # Combine date and time into date timestamp
         from datetime import datetime
@@ -73,6 +95,8 @@ async def create_appointment(
         
         appointment_data = {
             "patient_id": appointment.patient_id,
+            "patient_name": patient_name,
+            "patient_email": patient_email,
             "doctor_id": appointment.doctor_id,
             "date": appointment_datetime.isoformat(),
             "time": appointment.time,

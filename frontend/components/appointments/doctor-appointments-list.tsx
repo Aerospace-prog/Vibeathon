@@ -30,9 +30,12 @@ interface Appointment {
 
 interface DoctorAppointmentsListProps {
   doctorId: string
+  limit?: number
+  showFilters?: boolean
+  showStats?: boolean
 }
 
-export function DoctorAppointmentsList({ doctorId }: DoctorAppointmentsListProps) {
+export function DoctorAppointmentsList({ doctorId, limit, showFilters = true, showStats = true }: DoctorAppointmentsListProps) {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'scheduled' | 'completed' | 'cancelled'>('all')
@@ -192,15 +195,17 @@ export function DoctorAppointmentsList({ doctorId }: DoctorAppointmentsListProps
       }
 
       // Fetch patient details from patients table
-      const patientIds = [...new Set(appointmentsData.map(apt => apt.patient_id))]
+      // Note: appointments.patient_id maps to patients.id (not patients.user_id)
+      const patientIds = [...new Set(appointmentsData.map(apt => apt.patient_id).filter(Boolean))]
       
       console.log('Fetching patients for IDs:', patientIds)
       
       if (patientIds.length > 0) {
+        // Query patients by their id (which matches appointments.patient_id)
         const { data: patientsData, error: patientsError } = await supabase
           .from('patients')
           .select('id, user_id, name, email')
-          .in('user_id', patientIds)
+          .in('id', patientIds)
 
         console.log('Patients query result:', { data: patientsData, error: patientsError })
 
@@ -209,11 +214,11 @@ export function DoctorAppointmentsList({ doctorId }: DoctorAppointmentsListProps
           console.error('Patients table might not exist or RLS policies are blocking access')
         }
 
-        // Create a map of patient details
+        // Create a map of patient details using patient.id as key
         const patientMap = new Map()
         if (patientsData && patientsData.length > 0) {
           patientsData.forEach(patient => {
-            patientMap.set(patient.user_id, {
+            patientMap.set(patient.id, {
               name: patient.name || 'Patient',
               email: patient.email || ''
             })
@@ -226,7 +231,7 @@ export function DoctorAppointmentsList({ doctorId }: DoctorAppointmentsListProps
         // Combine appointment data with patient details
         const enrichedAppointments = appointmentsData.map(apt => ({
           ...apt,
-          patient_name: patientMap.get(apt.patient_id)?.name || `Patient ${apt.patient_id.substring(0, 8)}`,
+          patient_name: patientMap.get(apt.patient_id)?.name || `Patient ${apt.patient_id?.substring(0, 8) || 'Unknown'}`,
           patient_email: patientMap.get(apt.patient_id)?.email || '',
           consultation_fee: apt.consultation_fee || 0,
           time: apt.time || null
@@ -280,10 +285,12 @@ export function DoctorAppointmentsList({ doctorId }: DoctorAppointmentsListProps
     }
   }
 
-  const filteredAppointments = appointments.filter(apt => {
-    if (filter === 'all') return true
-    return apt.status === filter
-  })
+  const filteredAppointments = appointments
+    .filter(apt => {
+      if (filter === 'all') return true
+      return apt.status === filter
+    })
+    .slice(0, limit) // Apply limit if provided
 
   const stats = {
     total: appointments.length,
@@ -335,14 +342,15 @@ export function DoctorAppointmentsList({ doctorId }: DoctorAppointmentsListProps
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="border-2 border-teal-200/50 dark:border-teal-800/50">
-          <CardContent className="pt-6">
-            <div className="text-3xl font-bold text-teal-600 dark:text-teal-400">{stats.total}</div>
-            <p className="text-sm text-muted-foreground mt-1">Total Appointments</p>
-          </CardContent>
-        </Card>
-        <Card className="border-2 border-blue-200/50 dark:border-blue-800/50">
+      {showStats && (
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card className="border-2 border-teal-200/50 dark:border-teal-800/50">
+            <CardContent className="pt-6">
+              <div className="text-3xl font-bold text-teal-600 dark:text-teal-400">{stats.total}</div>
+              <p className="text-sm text-muted-foreground mt-1">Total Appointments</p>
+            </CardContent>
+          </Card>
+          <Card className="border-2 border-blue-200/50 dark:border-blue-800/50">
           <CardContent className="pt-6">
             <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{stats.scheduled}</div>
             <p className="text-sm text-muted-foreground mt-1">Scheduled</p>
@@ -360,47 +368,50 @@ export function DoctorAppointmentsList({ doctorId }: DoctorAppointmentsListProps
             <p className="text-sm text-muted-foreground mt-1">Cancelled</p>
           </CardContent>
         </Card>
-      </div>
+        </div>
+      )}
 
       {/* Filter Buttons */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant={filter === 'all' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setFilter('all')}
-              className={filter === 'all' ? 'bg-teal-600 hover:bg-teal-700' : ''}
-            >
-              All ({stats.total})
-            </Button>
-            <Button
-              variant={filter === 'scheduled' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setFilter('scheduled')}
-              className={filter === 'scheduled' ? 'bg-blue-600 hover:bg-blue-700' : ''}
-            >
-              Scheduled ({stats.scheduled})
-            </Button>
-            <Button
-              variant={filter === 'completed' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setFilter('completed')}
-              className={filter === 'completed' ? 'bg-green-600 hover:bg-green-700' : ''}
-            >
-              Completed ({stats.completed})
-            </Button>
-            <Button
-              variant={filter === 'cancelled' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setFilter('cancelled')}
-              className={filter === 'cancelled' ? 'bg-red-600 hover:bg-red-700' : ''}
-            >
-              Cancelled ({stats.cancelled})
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {showFilters && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={filter === 'all' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilter('all')}
+                className={filter === 'all' ? 'bg-teal-600 hover:bg-teal-700' : ''}
+              >
+                All ({stats.total})
+              </Button>
+              <Button
+                variant={filter === 'scheduled' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilter('scheduled')}
+                className={filter === 'scheduled' ? 'bg-blue-600 hover:bg-blue-700' : ''}
+              >
+                Scheduled ({stats.scheduled})
+              </Button>
+              <Button
+                variant={filter === 'completed' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilter('completed')}
+                className={filter === 'completed' ? 'bg-green-600 hover:bg-green-700' : ''}
+              >
+                Completed ({stats.completed})
+              </Button>
+              <Button
+                variant={filter === 'cancelled' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilter('cancelled')}
+                className={filter === 'cancelled' ? 'bg-red-600 hover:bg-red-700' : ''}
+              >
+                Cancelled ({stats.cancelled})
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Appointments List */}
       {filteredAppointments.length === 0 ? (
