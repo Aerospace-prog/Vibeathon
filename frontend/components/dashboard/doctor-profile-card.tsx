@@ -58,26 +58,42 @@ export function DoctorProfileCard() {
     setIsSaving(true)
 
     try {
-      const { error } = await supabase
-        .from('doctors')
-        .update({
-          full_name: editedProfile.full_name,
-          specialization: editedProfile.specialization,
-          license_number: editedProfile.license_number,
-          phone: editedProfile.phone,
-          years_of_experience: editedProfile.years_of_experience,
-          consultation_fee: editedProfile.consultation_fee,
-        })
-        .eq('id', profile.id)
+      const updateData = {
+        full_name: editedProfile.full_name,
+        specialization: editedProfile.specialization,
+        license_number: editedProfile.license_number,
+        phone: editedProfile.phone,
+        years_of_experience: editedProfile.years_of_experience ?? 0,
+        consultation_fee: editedProfile.consultation_fee ?? 0,
+      }
 
-      if (error) throw error
+      console.log('Updating profile with:', updateData)
+
+      const { data, error } = await supabase
+        .from('doctors')
+        .update(updateData)
+        .eq('id', profile.id)
+        .select()
+
+      console.log('Update response:', { data, error })
+
+      if (error) {
+        console.error('Supabase error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        })
+        throw error
+      }
 
       setProfile({ ...profile, ...editedProfile } as DoctorProfile)
       setIsEditing(false)
       toast.success('Profile updated successfully')
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating profile:', error)
-      toast.error('Failed to update profile')
+      const errorMessage = error?.message || error?.details || 'Failed to update profile. Please check console for details.'
+      toast.error(errorMessage)
     } finally {
       setIsSaving(false)
     }

@@ -43,7 +43,23 @@ export default async function DashboardPage() {
     redirect('/patient/dashboard')
   }
 
-  const doctorName = extractDoctorName(session.user.email || 'Doctor')
+  // Fetch doctor profile from database
+  let doctorName = 'Doctor'
+  try {
+    const { data: doctorProfile } = await supabase
+      .from('doctors')
+      .select('full_name')
+      .eq('id', session.user.id)
+      .single()
+    
+    if (doctorProfile?.full_name) {
+      doctorName = doctorProfile.full_name
+    } else {
+      doctorName = extractDoctorName(session.user.email || 'Doctor')
+    }
+  } catch (error) {
+    doctorName = extractDoctorName(session.user.email || 'Doctor')
+  }
 
   let upcomingConsultations: Consultation[] = []
   
