@@ -97,6 +97,19 @@ async def upload_medical_image(
             patient_description=patient_description
         )
         
+        # Ensure analysis is a dict, not a string
+        if isinstance(analysis, str):
+            try:
+                analysis = json.loads(analysis)
+            except json.JSONDecodeError:
+                analysis = {
+                    "visual_description": analysis,
+                    "severity": "unknown",
+                    "possible_conditions": [],
+                    "recommendations": {},
+                    "disclaimer": "This is not a medical diagnosis. Please consult a healthcare professional."
+                }
+        
         # Extract key information from analysis
         severity_level = analysis.get('severity', 'unknown')
         detected_conditions = [
