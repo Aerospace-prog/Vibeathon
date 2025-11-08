@@ -14,8 +14,8 @@ export function LogoutButton() {
     setLoading(true)
     try {
       await supabase.auth.signOut()
-      // Force a full page reload to clear all state
-      window.location.href = '/auth'
+      // Force a full page reload to clear all state and redirect to landing page
+      window.location.href = '/'
     } catch (error) {
       console.error('Error signing out:', error)
       setLoading(false)
