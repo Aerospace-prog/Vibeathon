@@ -83,10 +83,7 @@ export default function VideoCallRoom({ consultationId, userType }: VideoCallRoo
       }
     },
     onOpen: () => {
-      console.log('WebSocket connected, starting audio streaming')
-      if (!debugMode) {
-        startAudioStreaming()
-      }
+      console.log('WebSocket connected')
     },
     onError: (error) => {
       console.error('WebSocket error:', error)
@@ -95,6 +92,14 @@ export default function VideoCallRoom({ consultationId, userType }: VideoCallRoo
       }
     }
   })
+
+  // Start audio streaming when WebSocket connects
+  useEffect(() => {
+    if (wsConnected && isCallActive && !debugMode && localStreamRef.current) {
+      console.log('WebSocket connected and call active, starting audio streaming')
+      startAudioStreaming()
+    }
+  }, [wsConnected, isCallActive, debugMode])
 
   // Auto-scroll captions
   useEffect(() => {
@@ -243,7 +248,22 @@ export default function VideoCallRoom({ consultationId, userType }: VideoCallRoo
   }, [])
 
   const startAudioStreaming = () => {
-    if (!localStreamRef.current || !ws) return
+    console.log('startAudioStreaming called', {
+      hasLocalStream: !!localStreamRef.current,
+      hasWs: !!ws,
+      wsReadyState: ws?.readyState,
+      wsConnected
+    })
+    
+    if (!localStreamRef.current) {
+      console.error('No local stream available')
+      return
+    }
+    
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      console.error('WebSocket not ready', { ws, readyState: ws?.readyState })
+      return
+    }
 
     try {
       // Stop existing recorder if any
@@ -263,8 +283,16 @@ export default function VideoCallRoom({ consultationId, userType }: VideoCallRoo
       const audioStream = new MediaStream([audioTrack])
 
       // Create MediaRecorder to capture audio chunks
+      // Try OGG Opus first (better supported by Google Cloud), fallback to WebM
+      let mimeType = 'audio/ogg;codecs=opus'
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'audio/webm;codecs=opus'
+      }
+      
+      console.log(`Using audio format: ${mimeType}`)
+      
       const mediaRecorder = new MediaRecorder(audioStream, {
-        mimeType: 'audio/webm;codecs=opus'
+        mimeType: mimeType
       })
       mediaRecorderRef.current = mediaRecorder
 
@@ -286,8 +314,9 @@ export default function VideoCallRoom({ consultationId, userType }: VideoCallRoo
         toast.success('Live translation active')
       }
 
-      // Start recording with 1-second timeslices
-      mediaRecorder.start(1000)
+      // Start recording with 2-second timeslices for better STT accuracy
+      // Longer chunks give Google Cloud STT more context to work with
+      mediaRecorder.start(2000)
 
     } catch (err) {
       console.error('Error starting audio streaming:', err)

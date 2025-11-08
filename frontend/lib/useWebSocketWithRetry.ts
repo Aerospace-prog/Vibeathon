@@ -43,8 +43,17 @@ export function useWebSocketWithRetry({
   const shouldConnectRef = useRef(enabled)
 
   const connect = useCallback(() => {
-    if (!shouldConnectRef.current || wsRef.current?.readyState === WebSocket.OPEN) {
+    // Don't connect if already connected or connecting
+    if (!shouldConnectRef.current) {
       return
+    }
+    
+    if (wsRef.current) {
+      const state = wsRef.current.readyState
+      if (state === WebSocket.OPEN || state === WebSocket.CONNECTING) {
+        console.log('WebSocket already connected or connecting, skipping...')
+        return
+      }
     }
 
     try {
@@ -143,9 +152,11 @@ export function useWebSocketWithRetry({
 
   useEffect(() => {
     shouldConnectRef.current = enabled
-    if (enabled) {
+    
+    // Only connect if enabled and not already connected/connecting
+    if (enabled && !wsRef.current) {
       connect()
-    } else {
+    } else if (!enabled) {
       close()
     }
 
@@ -158,7 +169,7 @@ export function useWebSocketWithRetry({
         wsRef.current.close()
       }
     }
-  }, [enabled, connect, close])
+  }, [enabled, url])
 
   return {
     ws: wsRef.current,

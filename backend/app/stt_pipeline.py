@@ -120,20 +120,31 @@ class STTPipeline:
             return None
         
         try:
-            # Configure recognition
+            # Configure recognition for OGG Opus audio (browser native format)
             config = speech.RecognitionConfig(
-                encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
-                sample_rate_hertz=16000,
+                encoding=speech.RecognitionConfig.AudioEncoding.OGG_OPUS,
+                sample_rate_hertz=48000,  # Standard browser sample rate
                 language_code=language_code,
                 alternative_language_codes=alternative_language_codes or [],
                 enable_automatic_punctuation=True,
                 model='latest_long',  # Best for medical terminology
+                # Enhanced audio processing settings
+                use_enhanced=True,  # Use enhanced model for better accuracy
+                enable_word_time_offsets=False,  # Disable to reduce latency
+                max_alternatives=1,  # Only need top result
+                profanity_filter=False,  # Medical terms might be flagged
+                # Audio channel configuration
+                audio_channel_count=1,  # Mono audio
+                enable_separate_recognition_per_channel=False,
             )
             
             audio = speech.RecognitionAudio(content=audio_chunk)
             
             # Perform synchronous recognition
+            logger.debug(f"Sending {len(audio_chunk)} bytes to Google Cloud STT")
             response = self.google_speech_client.recognize(config=config, audio=audio)
+            
+            logger.debug(f"Google Cloud response: {response}")
             
             # Extract transcript from response
             if response.results:
@@ -142,14 +153,16 @@ class STTPipeline:
                     for result in response.results
                     if result.alternatives
                 ])
-                logger.debug(f"Google STT transcribed: {transcript[:50]}...")
+                logger.info(f"✅ Google STT transcribed: {transcript}")
                 return transcript
             
-            logger.debug("Google STT returned no results")
+            logger.warning("⚠️ Google STT returned no results (silence or unclear audio)")
             return None
             
         except Exception as e:
-            logger.error(f"Google Cloud Speech-to-Text error: {str(e)}")
+            logger.error(f"❌ Google Cloud Speech-to-Text error: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return None
     
     async def transcribe_audio_whisper(self, audio_chunk: bytes) -> Optional[str]:
@@ -360,10 +373,15 @@ class STTPipeline:
             
             # Step 2: Community Lexicon lookup (before translation)
             # Replace regional medical terms with verified English equivalents
-            lexicon_corrected_text = await self.lookup_lexicon_term(
-                original_text,
-                db_client
-            )
+            lexicon_corrected_text = original_text
+            try:
+                if db_client and hasattr(db_client, 'search_lexicon'):
+                    lexicon_corrected_text = await self.lookup_lexicon_term(
+                        original_text,
+                        db_client
+                    )
+            except Exception as e:
+                logger.warning(f"Lexicon lookup skipped: {e}")
             
             # Step 3: Translate based on user type
             if user_type == 'patient':
@@ -389,8 +407,12 @@ class STTPipeline:
             )
             
             # Step 4: Append to consultation transcript
-            transcript_entry = f"[{user_type.upper()}]: {original_text}"
-            await db_client.append_transcript(consultation_id, transcript_entry)
+            try:
+                if db_client and hasattr(db_client, 'append_transcript'):
+                    transcript_entry = f"[{user_type.upper()}]: {original_text}"
+                    await db_client.append_transcript(consultation_id, transcript_entry)
+            except Exception as e:
+                logger.warning(f"Transcript save skipped: {e}")
             
             # Return result
             result = {

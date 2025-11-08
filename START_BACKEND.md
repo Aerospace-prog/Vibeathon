@@ -1,116 +1,158 @@
-# How to Start Backend Correctly
+# Start Backend - Quick Guide
 
-## The Error You're Seeing
-
-```
-ModuleNotFoundError: No module named 'app'
-```
-
-This means Python can't find the `app` module because:
-1. You're not in the `backend` directory
-2. Virtual environment isn't activated
-3. Or you're running the wrong command
-
-## ✅ Correct Way to Start Backend
-
-### Step 1: Open Terminal in Backend Directory
+## Start Backend Server
 
 ```bash
-cd C:\Users\LENOVO\OneDrive\Desktop\Vibeathon\backend
-```
-
-### Step 2: Activate Virtual Environment
-
-```bash
+cd backend
 venv\Scripts\activate
-```
-
-You should see `(venv)` at the start of your prompt:
-```
-(venv) PS C:\Users\LENOVO\OneDrive\Desktop\Vibeathon\backend>
-```
-
-### Step 3: Run Backend
-
-```bash
 python run.py
 ```
 
-## Expected Output
+## Expected Startup Messages
 
 You should see:
+
 ```
-INFO:     Will watch for changes in these directories: ['C:\\Users\\LENOVO\\OneDrive\\Desktop\\Vibeathon\\backend']
-INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-INFO:     Started reloader process [xxxxx] using WatchFiles
-INFO:     Started server process [xxxxx]
-INFO:     Waiting for application startup.
-INFO:     STT pipeline initialized successfully
-WARNING:  Database client unavailable, transcripts won't be saved
-INFO:     Application startup complete.
+No sentence-transformers model found with name Supabase/gte-small. Creating a new one with mean pooling.
+INFO: Started server process [XXXXX]
+INFO: Waiting for application startup.
+INFO: Application startup complete.
+INFO: Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
 ```
 
-## Troubleshooting
+**Note:** The sentence-transformers message is normal - it's downloading the embedding model for Community Lexicon (only happens once).
 
-### Issue: "venv\Scripts\activate" not found
+## What Each Service Does
 
-**Solution**: Create virtual environment first
-```bash
-cd backend
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
-python run.py
-```
+When the backend starts, it initializes:
 
-### Issue: Still getting ModuleNotFoundError
+1. **Google Cloud Speech-to-Text** - Transcribes audio
+2. **Google Cloud Translation** - Translates text
+3. **Sentence Transformers** - For medical term lookup (optional)
+4. **Database Client** - Saves transcripts
 
-**Solution**: Make sure you're in the backend directory
-```bash
-# Check current directory
-pwd
+## If You See Warnings
 
-# Should show: .../Vibeathon/backend
-# If not, navigate there:
-cd backend
-```
+### "Google Cloud Speech client not initialized"
+- Check `backend/.env` has `GOOGLE_CLOUD_PROJECT_ID`
+- Check `google-credentials.json` exists
+- Run `python test_translation.py`
 
-### Issue: "python: command not found"
+### "OpenAI client not initialized"
+- This is OK - OpenAI Whisper is optional fallback
+- Translation will still work with Google Cloud
 
-**Solution**: Use `python3` or check Python installation
-```bash
-python3 run.py
-# or
-py run.py
-```
-
-## Quick Start Script
-
-Save this as `start-backend.bat` in the backend folder:
-
-```batch
-@echo off
-cd /d "%~dp0"
-call venv\Scripts\activate
-python run.py
-pause
-```
-
-Then just double-click `start-backend.bat` to start the backend!
+### "sentence-transformers library not available"
+- This is OK - Community Lexicon is optional
+- Translation will still work without it
 
 ## Verify Backend is Running
 
-1. Open browser: http://localhost:8000/docs
-2. You should see FastAPI Swagger documentation
-3. Check health: http://localhost:8000/health
+Open browser: http://localhost:8000/health
 
-## Common Mistakes
+Should show:
+```json
+{
+  "status": "healthy",
+  "timestamp": "...",
+  "services": {
+    "alert_engine": "operational",
+    "emotion_analyzer": "operational",
+    "database": "operational"
+  }
+}
+```
 
-❌ Running from root directory
-❌ Not activating virtual environment
-❌ Using `uvicorn main:app` instead of `python run.py`
-❌ Running `uvicorn app.main:app` from wrong directory
+## Test Translation
 
-✅ Always run from `backend` directory
-✅ Always activate venv first
-✅ Use `python run.py`
+Once backend is running, test it:
+
+```bash
+# In a new terminal
+cd backend
+python test_translation.py
+```
+
+## Now Test in Browser
+
+1. Open http://localhost:3000
+2. Sign in
+3. Start a video call
+4. **Speak into microphone**
+5. Watch backend terminal for:
+   ```
+   ✅ Video call WebSocket connected: xxx_doctor
+   ✅ Received 8192 bytes of audio data from doctor
+   ✅ Audio validation passed
+   🔄 Converting WebM to PCM...
+   ✅ Converted to 16000 bytes PCM
+   🔄 Processing through STT pipeline...
+   ✅ STT result: {...}
+   ✅ Sent caption: Hello, how are you...
+   ```
+
+## If No Audio Received
+
+Check:
+- [ ] Microphone permissions granted in browser
+- [ ] Green "Live translation active" badge showing
+- [ ] Browser console shows "Audio streaming started"
+- [ ] Speaking loud enough
+
+## If Audio Received But No Captions
+
+Check backend logs for:
+- ❌ Audio conversion failed → Install: `pip install soundfile numpy`
+- ❌ Google Cloud error → Run: `python test_translation.py`
+- ⚠️ No text transcribed → Speak louder/clearer
+
+## Stop Backend
+
+Press `CTRL+C` in the backend terminal
+
+## Restart Backend
+
+If you make changes to backend code:
+1. Press `CTRL+C` to stop
+2. Run `python run.py` again
+3. Uvicorn will auto-reload on file changes (no need to restart manually)
+
+## Common Startup Issues
+
+### Port 8000 Already in Use
+
+```bash
+# Windows: Find and kill process
+netstat -ano | findstr :8000
+taskkill /PID <PID> /F
+
+# Then restart
+python run.py
+```
+
+### Virtual Environment Not Activated
+
+You should see `(venv)` in your terminal prompt:
+```
+(venv) PS C:\...\backend>
+```
+
+If not:
+```bash
+venv\Scripts\activate
+```
+
+### Missing Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+## Ready to Test!
+
+Once you see:
+```
+INFO: Uvicorn running on http://0.0.0.0:8000
+```
+
+Your backend is ready! Go to the frontend and start a video call.

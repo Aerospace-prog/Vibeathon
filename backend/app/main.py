@@ -15,6 +15,8 @@ import json
 from .alert_engine import AlertEngine, Alert
 from .emotion_analyzer import EmotionAnalyzer, EmotionResult
 from .database import DatabaseClient
+from .stt_pipeline import get_stt_pipeline
+from .audio_converter_ffmpeg import get_audio_converter
 
 app = FastAPI(title="Arogya-AI Medical Intelligence API")
 
@@ -31,6 +33,8 @@ app.add_middleware(
 alert_engine = AlertEngine()
 emotion_analyzer = EmotionAnalyzer()
 db_client = DatabaseClient()
+stt_pipeline = get_stt_pipeline()
+audio_converter = get_audio_converter()
 
 # WebSocket connection manager
 class ConnectionManager:
@@ -234,6 +238,96 @@ async def delete_user_emotions(user_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.websocket("/ws/{consultation_id}/{user_type}")
+async def video_call_websocket(websocket: WebSocket, consultation_id: str, user_type: str):
+    """
+    WebSocket endpoint for video call room with real-time translation.
+    
+    Handles audio streaming and returns translated captions.
+    
+    Args:
+        websocket: WebSocket connection
+        consultation_id: ID of the consultation
+        user_type: Type of user (doctor or patient)
+    """
+    connection_id = f"{consultation_id}_{user_type}"
+    await websocket.accept()
+    print(f"Video call WebSocket connected: {connection_id}")
+    
+    try:
+        while True:
+            # Wait for any message from client
+            message = await websocket.receive()
+            
+            # Check if client disconnected
+            if message["type"] == "websocket.disconnect":
+                break
+            
+            # Handle binary data (audio)
+            if message["type"] == "websocket.receive" and "bytes" in message:
+                audio_data = message["bytes"]
+                print(f"✅ Received {len(audio_data)} bytes of audio data from {user_type}")
+                
+                # Validate audio data
+                if not audio_converter.is_valid_audio(audio_data):
+                    print("⚠️  Audio data too small, skipping...")
+                    continue
+                
+                print(f"✅ Audio validation passed")
+                print(f"✅ Sending {len(audio_data)} bytes directly to Google Cloud (OGG Opus)")
+                
+                # Process audio through STT pipeline (no conversion needed for OGG Opus)
+                try:
+                    print(f"🔄 Processing through STT pipeline...")
+                    result = await stt_pipeline.process_audio_stream(
+                        audio_chunk=audio_data,
+                        user_type=user_type,
+                        consultation_id=consultation_id,
+                        db_client=db_client
+                    )
+                    
+                    print(f"✅ STT result: {result}")
+                    
+                    # Send translation result back to client
+                    if result and result.get("original_text"):
+                        caption_message = {
+                            "speaker_id": result["speaker_id"],
+                            "original_text": result["original_text"],
+                            "translated_text": result["translated_text"],
+                            "timestamp": datetime.now().timestamp()
+                        }
+                        
+                        await websocket.send_json(caption_message)
+                        print(f"✅ Sent caption: {result['original_text'][:50]}...")
+                    else:
+                        print(f"⚠️  No text transcribed (silence or unclear audio)")
+                    
+                except Exception as e:
+                    print(f"❌ Error processing audio: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    # Continue listening even if processing fails
+            
+            # Handle text/JSON data
+            elif message["type"] == "websocket.receive" and "text" in message:
+                try:
+                    data = json.loads(message["text"])
+                    print(f"Received message from {user_type}: {data}")
+                except json.JSONDecodeError:
+                    print(f"Received text from {user_type}: {message['text']}")
+    
+    except WebSocketDisconnect:
+        print(f"Video call WebSocket disconnected: {connection_id}")
+    except Exception as e:
+        print(f"Video call WebSocket error: {e}")
+    finally:
+        # Clean up connection
+        try:
+            await websocket.close()
+        except:
+            pass
+
+
 @app.websocket("/ws/emotions/{user_id}")
 async def emotion_websocket(websocket: WebSocket, user_id: str):
     """
@@ -247,14 +341,6 @@ async def emotion_websocket(websocket: WebSocket, user_id: str):
         user_id: ID of the user
     """
     await manager.connect(user_id, websocket)
-    
-    # Try to get database client, but don't fail if unavailable
-    db_client = None
-    try:
-        db_client = get_database_client()
-        logger.info("Database client initialized for WebSocket")
-    except Exception as e:
-        logger.warning(f"Database client unavailable, transcripts won't be saved: {e}")
     
     try:
         while True:
