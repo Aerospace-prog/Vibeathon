@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { StartCallButton } from '@/components/dashboard/start-call-button'
 import { LogoutButton } from '@/components/dashboard/logout-button'
+import { AvailabilityToggle } from '@/components/dashboard/availability-toggle'
 import { AnimatedLogo } from '@/components/ui/animated-logo'
 import { Activity, Users, TrendingUp, Zap, Sparkles, Heart, Brain, Shield } from 'lucide-react'
 
@@ -126,7 +127,10 @@ export default async function DashboardPage() {
                 </Link>
               </nav>
             </div>
-            <LogoutButton />
+            <div className="flex items-center gap-4">
+              <AvailabilityToggle />
+              <LogoutButton />
+            </div>
           </div>
         </div>
       </header>

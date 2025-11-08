@@ -199,7 +199,8 @@ BEGIN
         INSERT INTO public.doctors (
             id, 
             email, 
-            full_name, 
+            full_name,
+            specialization,
             years_of_experience, 
             consultation_fee
         )
@@ -207,6 +208,7 @@ BEGIN
             NEW.id,
             NEW.email,
             COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email),
+            NEW.raw_user_meta_data->>'specialization',
             COALESCE((NEW.raw_user_meta_data->>'years_of_experience')::INTEGER, 0),
             COALESCE((NEW.raw_user_meta_data->>'consultation_fee')::DECIMAL, 0.00)
         );

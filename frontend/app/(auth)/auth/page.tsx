@@ -75,6 +75,7 @@ export default function AuthPage() {
   const [password, setPassword] = useState('')
   const [role, setRole] = useState<'doctor' | 'patient'>('doctor')
   const [fullName, setFullName] = useState('')
+  const [specialization, setSpecialization] = useState('')
   const [yearsOfExperience, setYearsOfExperience] = useState('')
   const [consultationFee, setConsultationFee] = useState('')
   const [error, setError] = useState('')
@@ -173,6 +174,7 @@ export default function AuthPage() {
               full_name: fullName || email.split('@')[0], // Use provided name or email prefix
               preferred_language: 'en',
               date_of_birth: new Date(Date.now() - 30 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default 30 years old
+              specialization: role === 'doctor' ? specialization : undefined,
               years_of_experience: role === 'doctor' ? parseInt(yearsOfExperience) || 0 : undefined,
               consultation_fee: role === 'doctor' ? parseFloat(consultationFee) || 0 : undefined
             },
@@ -432,6 +434,21 @@ export default function AuthPage() {
                 {/* Doctor-specific fields */}
                 {role === 'doctor' && (
                   <>
+                    <div className="space-y-2">
+                      <label htmlFor="specialization" className="text-sm font-semibold text-teal-700 dark:text-teal-300">
+                        Specialization
+                      </label>
+                      <Input
+                        id="specialization"
+                        type="text"
+                        placeholder="e.g., General Physician, Cardiologist"
+                        value={specialization}
+                        onChange={(e) => setSpecialization(e.target.value)}
+                        disabled={loading}
+                        className="border-teal-200 dark:border-teal-800 focus:border-teal-500 focus:ring-teal-500"
+                      />
+                    </div>
+
                     <div className="space-y-2">
                       <label htmlFor="yearsOfExperience" className="text-sm font-semibold text-teal-700 dark:text-teal-300">
                         Years of Experience

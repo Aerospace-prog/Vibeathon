@@ -18,6 +18,7 @@ interface DoctorProfile {
   phone: string | null
   years_of_experience: number | null
   consultation_fee: number | null
+  is_available: boolean | null
 }
 
 export function DoctorProfileCard() {
@@ -65,6 +66,7 @@ export function DoctorProfileCard() {
         phone: editedProfile.phone,
         years_of_experience: editedProfile.years_of_experience ?? 0,
         consultation_fee: editedProfile.consultation_fee ?? 0,
+        is_available: editedProfile.is_available ?? true,
       }
 
       console.log('Updating profile with:', updateData)
@@ -245,6 +247,39 @@ export function DoctorProfileCard() {
             disabled={!isEditing}
             placeholder="500.00"
           />
+        </div>
+
+        {/* Availability Toggle */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="is_available" className="flex items-center gap-2">
+              <span className={`w-3 h-3 rounded-full ${(isEditing ? editedProfile.is_available : profile.is_available) ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+              Available for Consultations
+            </Label>
+            <button
+              type="button"
+              onClick={() => {
+                if (isEditing) {
+                  setEditedProfile({ ...editedProfile, is_available: !editedProfile.is_available })
+                }
+              }}
+              disabled={!isEditing}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                (isEditing ? editedProfile.is_available : profile.is_available) ? 'bg-green-500' : 'bg-gray-300'
+              } ${!isEditing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  (isEditing ? editedProfile.is_available : profile.is_available) ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {(isEditing ? editedProfile.is_available : profile.is_available) 
+              ? 'You are visible to patients and can receive appointments' 
+              : 'You are not accepting new appointments'}
+          </p>
         </div>
 
         {/* Professional Summary */}
