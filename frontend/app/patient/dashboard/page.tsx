@@ -212,7 +212,7 @@ export default async function PatientDashboard() {
         </div>
 
         {/* Upcoming Appointments */}
-        <Card className="border-zinc-200/50 dark:border-zinc-800/50">
+        <Card className="border-zinc-200/50 dark:border-zinc-800/50 mb-8">
           <CardHeader>
             <div className="flex items-center gap-3">
               <div className="relative">
@@ -239,6 +239,41 @@ export default async function PatientDashboard() {
                 <Button className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white">
                   <Calendar className="w-4 h-4 mr-2" />
                   Book Appointment
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Lab Reports */}
+        <Card className="border-zinc-200/50 dark:border-zinc-800/50 hover:shadow-xl transition-all duration-300 group relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <CardHeader className="relative">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg blur-md opacity-50 group-hover:opacity-75 transition-opacity" />
+                <div className="relative bg-gradient-to-br from-indigo-500 to-purple-600 p-2 rounded-lg">
+                  <FileText className="w-5 h-5 text-white" />
+                </div>
+              </div>
+              <div>
+                <CardTitle>Lab Report Analyzer</CardTitle>
+                <CardDescription>Upload and analyze your lab reports with AI</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="relative">
+            <div className="text-center py-12">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-50 dark:bg-indigo-950/30 rounded-full mb-4">
+                <FileText className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                Get AI-powered insights from your lab reports
+              </p>
+              <Link href="/patient/dashboard/lab-reports">
+                <Button className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Analyze Lab Reports
                 </Button>
               </Link>
             </div>
