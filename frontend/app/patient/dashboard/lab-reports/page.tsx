@@ -18,6 +18,12 @@ export default async function LabReportsPage() {
     redirect('/auth')
   }
 
+  // Check if user is a patient
+  const userRole = session.user.user_metadata?.role
+  if (userRole === 'doctor') {
+    redirect('/dashboard')
+  }
+
   // Use the actual user ID from session
   const patientId = session.user.id
 
@@ -35,26 +41,31 @@ export default async function LabReportsPage() {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-8">
-              <AnimatedLogo size="md" href="/dashboard" />
+              <AnimatedLogo size="md" href="/patient/dashboard" />
               <nav className="flex gap-6">
                 <Link 
-                  href="/dashboard" 
+                  href="/patient/dashboard" 
                   className="text-sm font-medium text-muted-foreground hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
                 >
                   Dashboard
                 </Link>
                 <Link 
-                  href="/records" 
+                  href="/patient/appointments" 
                   className="text-sm font-medium text-muted-foreground hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
                 >
-                  Patient Records
+                  My Appointments
                 </Link>
                 <Link 
-                  href="/lab-reports" 
-                  className="text-sm font-medium text-teal-600 dark:text-teal-400 relative"
+                  href="/patient/medical-images" 
+                  className="text-sm font-medium text-muted-foreground hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
                 >
-                  Lab Reports
-                  <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-teal-500 to-cyan-600" />
+                  AI Image Analysis
+                </Link>
+                <Link 
+                  href="/patient/records" 
+                  className="text-sm font-medium text-muted-foreground hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
+                >
+                  Medical Records
                 </Link>
               </nav>
             </div>
@@ -66,7 +77,7 @@ export default async function LabReportsPage() {
       {/* Main Content */}
       <main className="relative z-10 max-w-7xl mx-auto p-6">
         <div className="mb-6">
-          <Link href="/dashboard">
+          <Link href="/patient/dashboard">
             <Button variant="ghost" size="sm" className="hover:bg-teal-50 dark:hover:bg-teal-950/30">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Dashboard

@@ -238,42 +238,6 @@ export default async function DashboardPage() {
           </Card>
         </div>
 
-        {/* Lab Reports Card */}
-        <div className="relative group">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500" />
-          <Card className="relative border-2 border-white/20 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl shadow-2xl hover:shadow-blue-500/20 transform hover:scale-[1.02] transition-all duration-500 overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-indigo-500/10 to-blue-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-            
-            <CardHeader className="relative">
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl blur-md opacity-50 animate-pulse" />
-                  <div className="relative bg-gradient-to-br from-blue-500 to-indigo-600 p-3 rounded-xl shadow-lg transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
-                    <FileText className="w-6 h-6 text-white" />
-                  </div>
-                </div>
-                <div>
-                  <CardTitle className="text-2xl font-bold flex items-center gap-2">
-                    Lab Report Analyzer
-                    <Sparkles className="w-5 h-5 text-yellow-500 animate-pulse" />
-                  </CardTitle>
-                  <CardDescription className="text-base">
-                    Upload lab reports for AI-powered analysis and insights
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="relative">
-              <Link href="/lab-reports">
-                <Button variant="outline" className="w-full">
-                  <FileText className="mr-2 h-4 w-4" />
-                  Analyze Lab Reports
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Feature Cards Grid */}
         <div className="grid gap-6 md:grid-cols-3">
           {[
