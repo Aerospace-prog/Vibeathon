@@ -19,6 +19,7 @@ from .stt_pipeline import get_stt_pipeline
 from .audio_converter_ffmpeg import get_audio_converter
 from .appointments import router as appointments_router
 from .lab_reports import router as lab_reports_router
+from .medical_images import router as medical_images_router
 
 app = FastAPI(title="Arogya-AI Medical Intelligence API")
 
@@ -27,6 +28,8 @@ app.include_router(appointments_router)
 
 # Include lab reports routes
 app.include_router(lab_reports_router)
+# Include medical images routes
+app.include_router(medical_images_router)
 
 # Enable CORS for frontend integration
 app.add_middleware(

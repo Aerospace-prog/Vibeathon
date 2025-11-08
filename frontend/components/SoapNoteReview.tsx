@@ -17,7 +17,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { AlertCircle, CheckCircle, Lightbulb, RefreshCw } from 'lucide-react'
+import { AlertCircle, CheckCircle, Lightbulb, RefreshCw, ArrowLeft } from 'lucide-react'
 import { LoadingOverlay } from '@/components/ui/spinner'
 import { toast } from 'sonner'
 
@@ -271,7 +271,17 @@ export default function SoapNoteReview({ consultationId }: SoapNoteReviewProps) 
       <header className="border-b bg-white dark:bg-zinc-900">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
-            <div className="flex items-center gap-8">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.back()}
+                className="gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back
+              </Button>
+              <div className="h-6 w-px bg-border" />
               <h1 className="text-2xl font-bold">Arogya-AI</h1>
               <span className="text-sm text-muted-foreground">
                 SOAP Note Review

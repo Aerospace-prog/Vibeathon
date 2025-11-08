@@ -1,6 +1,9 @@
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase-server'
+import { Button } from '@/components/ui/button'
 import { DoctorProfileCard } from '@/components/dashboard/doctor-profile-card'
+import { ArrowLeft } from 'lucide-react'
 
 export default async function ProfilePage() {
   const supabase = await createClient()
@@ -16,6 +19,12 @@ export default async function ProfilePage() {
   return (
     <div className="container max-w-4xl mx-auto py-8 px-4">
       <div className="mb-8">
+        <Link href="/dashboard">
+          <Button variant="ghost" className="mb-4 gap-2">
+            <ArrowLeft className="w-4 h-4" />
+            Back to Dashboard
+          </Button>
+        </Link>
         <h1 className="text-3xl font-bold">Profile Settings</h1>
         <p className="text-muted-foreground mt-2">
           Manage your professional information and preferences

@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { PatientRecordsClient } from '@/components/records/patient-records-client'
 import { LogoutButton } from '@/components/dashboard/logout-button'
 import { AnimatedLogo } from '@/components/ui/animated-logo'
+import { ArrowLeft } from 'lucide-react'
 
 interface Patient {
   id: string
@@ -125,6 +126,12 @@ export default async function RecordsPage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto p-6">
         <div className="mb-8">
+          <Link href="/dashboard">
+            <Button variant="ghost" className="mb-4 gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              Back to Dashboard
+            </Button>
+          </Link>
           <h2 className="text-3xl font-bold">Patient Records</h2>
           <p className="text-muted-foreground mt-1">
             View and manage patient information
