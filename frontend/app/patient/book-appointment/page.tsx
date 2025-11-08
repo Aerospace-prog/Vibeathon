@@ -1,12 +1,15 @@
 "use client"
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Button } from '@/components/ui/button'
 import PatientSymptomChecker from '@/components/patient/PatientSymptomChecker'
 import DoctorBooking from '@/components/patient/DoctorBooking'
-import { Stethoscope, Calendar } from 'lucide-react'
+import { Stethoscope, Calendar, ArrowLeft } from 'lucide-react'
 
 export default function BookAppointmentPage() {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState('symptom-checker')
   const [symptomCategory, setSymptomCategory] = useState<string | undefined>()
   const [severity, setSeverity] = useState<number | undefined>()
@@ -20,6 +23,14 @@ export default function BookAppointmentPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="mb-8">
+        <Button
+          variant="ghost"
+          onClick={() => router.back()}
+          className="mb-4 gap-2"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </Button>
         <h1 className="text-3xl font-bold mb-2">Healthcare Services</h1>
         <p className="text-muted-foreground">
           Check your symptoms and book appointments with qualified doctors

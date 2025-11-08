@@ -6,19 +6,18 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Calendar, Clock, Star, Search, Filter, MapPin, Video, CheckCircle2, Loader2 } from 'lucide-react'
+import { Calendar, Clock, Search, Filter, MapPin, Video, CheckCircle2, Loader2, ArrowLeft } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { supabase } from '@/lib/supabase'
 
 interface Doctor {
   id: string
   name: string
   specialty: string
   specialties: string[]
-  rating: number
-  reviews: number
   experience: number
-  languages: string[]
   availability: string
+  isAvailable: boolean
   consultationFee: number
   image?: string
   location: string
@@ -29,85 +28,6 @@ interface DoctorBookingProps {
   symptomCategory?: string
   severity?: number
 }
-
-// Mock doctor data - replace with API call
-const DOCTORS: Doctor[] = [
-  {
-    id: '1',
-    name: 'Dr. Rajesh Kumar',
-    specialty: 'Cardiologist',
-    specialties: ['Cardiology', 'Heart Disease', 'Chest Pain'],
-    rating: 4.8,
-    reviews: 234,
-    experience: 15,
-    languages: ['English', 'Hindi', 'Tamil'],
-    availability: 'Available Today',
-    consultationFee: 800,
-    location: 'Apollo Hospital, Delhi',
-    about: 'Specialized in treating heart conditions, chest pain, and cardiovascular diseases.',
-    image: '/doctors/dr-kumar.jpg'
-  },
-  {
-    id: '2',
-    name: 'Dr. Priya Sharma',
-    specialty: 'Pulmonologist',
-    specialties: ['Pulmonology', 'Respiratory', 'Breathing Issues'],
-    rating: 4.9,
-    reviews: 189,
-    experience: 12,
-    languages: ['English', 'Hindi'],
-    availability: 'Available Today',
-    consultationFee: 750,
-    location: 'Fortis Hospital, Mumbai',
-    about: 'Expert in respiratory conditions, breathing difficulties, and lung diseases.',
-    image: '/doctors/dr-sharma.jpg'
-  },
-  {
-    id: '3',
-    name: 'Dr. Amit Patel',
-    specialty: 'Neurologist',
-    specialties: ['Neurology', 'Headache', 'Dizziness', 'Neurological'],
-    rating: 4.7,
-    reviews: 156,
-    experience: 18,
-    languages: ['English', 'Hindi', 'Gujarati'],
-    availability: 'Tomorrow',
-    consultationFee: 900,
-    location: 'Max Hospital, Bangalore',
-    about: 'Specialized in neurological conditions, headaches, and brain-related issues.',
-    image: '/doctors/dr-patel.jpg'
-  },
-  {
-    id: '4',
-    name: 'Dr. Sneha Reddy',
-    specialty: 'Orthopedic Surgeon',
-    specialties: ['Orthopedics', 'Injury', 'Fracture', 'Bone', 'Joint Pain'],
-    rating: 4.9,
-    reviews: 278,
-    experience: 14,
-    languages: ['English', 'Hindi', 'Telugu'],
-    availability: 'Available Today',
-    consultationFee: 850,
-    location: 'AIIMS, Hyderabad',
-    about: 'Expert in treating fractures, injuries, and musculoskeletal conditions.',
-    image: '/doctors/dr-reddy.jpg'
-  },
-  {
-    id: '5',
-    name: 'Dr. Vikram Singh',
-    specialty: 'General Physician',
-    specialties: ['General Medicine', 'Fever', 'Infection', 'Pain'],
-    rating: 4.6,
-    reviews: 312,
-    experience: 10,
-    languages: ['English', 'Hindi', 'Punjabi'],
-    availability: 'Available Now',
-    consultationFee: 500,
-    location: 'Medanta Hospital, Gurgaon',
-    about: 'General physician for common ailments, infections, and routine checkups.',
-    image: '/doctors/dr-singh.jpg'
-  }
-]
 
 const SPECIALTY_MAP: Record<string, string[]> = {
   'chest_pain': ['Cardiologist', 'General Physician'],
@@ -121,18 +41,84 @@ const SPECIALTY_MAP: Record<string, string[]> = {
 }
 
 export default function DoctorBooking({ symptomCategory, severity }: DoctorBookingProps) {
-  const [doctors, setDoctors] = useState<Doctor[]>(DOCTORS)
-  const [filteredDoctors, setFilteredDoctors] = useState<Doctor[]>(DOCTORS)
+  const [doctors, setDoctors] = useState<Doctor[]>([])
+  const [filteredDoctors, setFilteredDoctors] = useState<Doctor[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSpecialty, setSelectedSpecialty] = useState<string>('all')
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null)
   const [showBookingDialog, setShowBookingDialog] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  // Fetch doctors from Supabase with availability
+  useEffect(() => {
+    async function fetchDoctors() {
+      setLoading(true)
+      try {
+        // Fetch doctors with is_available field
+        const { data: doctorsData, error: doctorsError } = await supabase
+          .from('doctors')
+          .select('*')
+          .order('created_at', { ascending: false })
+
+        if (doctorsError) {
+          console.error('Error fetching doctors:', doctorsError)
+          setDoctors([])
+          setFilteredDoctors([])
+          setLoading(false)
+          return
+        }
+
+        if (!doctorsData || doctorsData.length === 0) {
+          setDoctors([])
+          setFilteredDoctors([])
+          setLoading(false)
+          return
+        }
+
+        console.log('✅ Successfully fetched', doctorsData.length, 'doctors with availability')
+
+        // Transform database data to match Doctor interface
+        const transformedDoctors: Doctor[] = doctorsData.map(doc => {
+          // Use is_available directly from the doctors table
+          const isAvailable = doc.is_available !== false // Default to true if null/undefined
+          
+          // Log each doctor's availability
+          console.log(`Doctor ${doc.full_name || doc.email}: available = ${isAvailable}`)
+          
+          return {
+            id: doc.id,
+            name: doc.full_name || doc.email.split('@')[0],
+            specialty: doc.specialization || 'General Physician',
+            specialties: doc.specialization ? [doc.specialization] : ['General Physician'],
+            experience: doc.years_of_experience || 0,
+            availability: isAvailable ? 'Available Today' : 'Unavailable',
+            isAvailable: isAvailable,
+            consultationFee: Number(doc.consultation_fee) || 500,
+            location: 'Online Consultation',
+            about: `Experienced ${doc.specialization || 'General Physician'} with ${doc.years_of_experience || 0} years of practice.`,
+            image: undefined
+          }
+        })
+
+        setDoctors(transformedDoctors)
+        setFilteredDoctors(transformedDoctors)
+      } catch (err) {
+        console.error('Unexpected error fetching doctors:', err)
+        setDoctors([])
+        setFilteredDoctors([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDoctors()
+  }, [])
 
   useEffect(() => {
     // Filter doctors based on symptom category
-    if (symptomCategory && SPECIALTY_MAP[symptomCategory]) {
+    if (symptomCategory && SPECIALTY_MAP[symptomCategory] && doctors.length > 0) {
       const relevantSpecialties = SPECIALTY_MAP[symptomCategory]
-      const filtered = DOCTORS.filter(doc => 
+      const filtered = doctors.filter(doc => 
         relevantSpecialties.includes(doc.specialty)
       )
       setFilteredDoctors(filtered)
@@ -140,7 +126,7 @@ export default function DoctorBooking({ symptomCategory, severity }: DoctorBooki
         setSelectedSpecialty(relevantSpecialties[0])
       }
     }
-  }, [symptomCategory])
+  }, [symptomCategory, doctors])
 
   useEffect(() => {
     let filtered = doctors
@@ -162,7 +148,7 @@ export default function DoctorBooking({ symptomCategory, severity }: DoctorBooki
     setFilteredDoctors(filtered)
   }, [searchQuery, selectedSpecialty, doctors])
 
-  const specialties = ['all', ...Array.from(new Set(DOCTORS.map(d => d.specialty)))]
+  const specialties = ['all', ...Array.from(new Set(doctors.map(d => d.specialty)))]
 
   const handleBookAppointment = (doctor: Doctor) => {
     setSelectedDoctor(doctor)
@@ -222,10 +208,21 @@ export default function DoctorBooking({ symptomCategory, severity }: DoctorBooki
 
       {/* Doctor List */}
       <div className="grid gap-4">
-        {filteredDoctors.length === 0 ? (
+        {loading ? (
           <Card>
             <CardContent className="py-12 text-center">
-              <p className="text-muted-foreground">No doctors found matching your criteria</p>
+              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-teal-600" />
+              <p className="text-muted-foreground">Loading doctors...</p>
+            </CardContent>
+          </Card>
+        ) : filteredDoctors.length === 0 ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <p className="text-muted-foreground">
+                {doctors.length === 0 
+                  ? 'No doctors available at the moment. Please check back later.'
+                  : 'No doctors found matching your criteria'}
+              </p>
             </CardContent>
           </Card>
         ) : (
@@ -258,12 +255,7 @@ export default function DoctorBooking({ symptomCategory, severity }: DoctorBooki
 
                     <p className="text-sm text-muted-foreground">{doctor.about}</p>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                      <div className="flex items-center gap-2">
-                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                        <span className="font-semibold">{doctor.rating}</span>
-                        <span className="text-muted-foreground">({doctor.reviews})</span>
-                      </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="w-4 h-4 text-teal-600" />
                         <span>{doctor.experience} years exp</span>
@@ -273,16 +265,11 @@ export default function DoctorBooking({ symptomCategory, severity }: DoctorBooki
                         <span className="text-xs">{doctor.location}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-muted-foreground" />
-                        <span className={doctor.availability.includes('Now') || doctor.availability.includes('Today') ? 'text-green-600 font-semibold' : ''}>
+                        <div className={`w-2 h-2 rounded-full ${doctor.isAvailable ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+                        <span className={doctor.isAvailable ? 'text-green-600 font-semibold' : 'text-red-600'}>
                           {doctor.availability}
                         </span>
                       </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="text-muted-foreground">Languages:</span>
-                      <span>{doctor.languages.join(', ')}</span>
                     </div>
                   </div>
 
@@ -294,10 +281,11 @@ export default function DoctorBooking({ symptomCategory, severity }: DoctorBooki
                     </div>
                     <Button 
                       onClick={() => handleBookAppointment(doctor)}
-                      className="w-full bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white gap-2"
+                      disabled={!doctor.isAvailable}
+                      className="w-full bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Video className="w-4 h-4" />
-                      Book Appointment
+                      {doctor.isAvailable ? 'Book Appointment' : 'Unavailable'}
                     </Button>
                   </div>
                 </div>
@@ -508,6 +496,17 @@ function BookingDialog({ doctor, open, onClose, symptomCategory, severity }: {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
+          <div className="flex items-center gap-2 mb-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="gap-1"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </Button>
+          </div>
           <DialogTitle className="text-2xl">Book Appointment</DialogTitle>
           <DialogDescription>
             Schedule a video consultation with {doctor.name}
