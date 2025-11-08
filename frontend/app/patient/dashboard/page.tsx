@@ -1,11 +1,15 @@
-import { redirect } from 'next/navigation'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase-server'
+import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { LogoutButton } from '@/components/dashboard/logout-button'
 import { AnimatedLogo } from '@/components/ui/animated-logo'
-import { Calendar, FileText, Video, Heart, Clock, User } from 'lucide-react'
+import { Calendar, FileText, Video, Heart, Clock, User, Loader2 } from 'lucide-react'
 
 // Extract patient name from email
 function extractPatientName(email: string): string {
@@ -14,24 +18,77 @@ function extractPatientName(email: string): string {
   return cleanName.charAt(0).toUpperCase() + cleanName.slice(1)
 }
 
-export default async function PatientDashboard() {
-  const supabase = await createClient()
+export default function PatientDashboard() {
+  const router = useRouter()
+  const [patientName, setPatientName] = useState('Patient')
+  const [appointments, setAppointments] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
 
-  if (!session) {
-    redirect('/auth')
-  }
+        if (!session) {
+          router.push('/auth')
+          return
+        }
 
-  // Check if user is a patient
-  const userRole = session.user.user_metadata?.role
-  if (userRole === 'doctor') {
-    redirect('/dashboard')
-  }
+        // Check if user is a patient
+        const userRole = session.user.user_metadata?.role
+        if (userRole === 'doctor') {
+          router.push('/dashboard')
+          return
+        }
 
-  const patientName = extractPatientName(session.user.email || 'Patient')
+        setPatientName(extractPatientName(session.user.email || 'Patient'))
+
+        // Fetch patient record
+        const { data: patientData } = await supabase
+          .from('patients')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .single()
+
+        if (patientData) {
+          // Fetch appointments
+          const { data: appointmentsData } = await supabase
+            .from('appointments')
+            .select('id, doctor_id, date, time, consultation_fee, status, notes')
+            .eq('patient_id', patientData.id)
+            .eq('status', 'scheduled')
+            .order('date', { ascending: true })
+            .limit(3)
+
+          if (appointmentsData) {
+            // Fetch doctor details for each appointment
+            const appointmentsWithDoctors = await Promise.all(
+              appointmentsData.map(async (appointment) => {
+                const { data: doctorData } = await supabase
+                  .from('doctors')
+                  .select('full_name, specialization')
+                  .eq('id', appointment.doctor_id)
+                  .single()
+
+                return {
+                  ...appointment,
+                  doctor: doctorData
+                }
+              })
+            )
+
+            setAppointments(appointmentsWithDoctors)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [router])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-blue-50 to-teal-50 dark:from-cyan-950 dark:via-blue-950 dark:to-teal-950">
@@ -99,7 +156,9 @@ export default async function PatientDashboard() {
               {/* Quick stats */}
               <div className="flex gap-6">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-cyan-600 dark:text-cyan-400">0</div>
+                  <div className="text-3xl font-bold text-cyan-600 dark:text-cyan-400">
+                    {loading ? <Loader2 className="w-8 h-8 animate-spin mx-auto" /> : appointments.length}
+                  </div>
                   <div className="text-xs text-zinc-600 dark:text-zinc-400">Appointments</div>
                 </div>
                 <div className="w-px bg-zinc-200 dark:bg-zinc-800" />
@@ -137,26 +196,28 @@ export default async function PatientDashboard() {
             </Card>
           </Link>
 
-          <Card className="border-blue-200/50 dark:border-blue-800/50 hover:shadow-xl transition-all duration-300 group relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-teal-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-            <CardHeader className="relative">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-teal-600 rounded-lg blur-md opacity-50 group-hover:opacity-75 transition-opacity" />
-                  <div className="relative bg-gradient-to-br from-blue-500 to-teal-600 p-2 rounded-lg">
-                    <Video className="w-5 h-5 text-white" />
+          <Link href="/patient/appointments">
+            <Card className="border-blue-200/50 dark:border-blue-800/50 hover:shadow-xl transition-all duration-300 group relative overflow-hidden cursor-pointer">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-teal-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <CardHeader className="relative">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-teal-600 rounded-lg blur-md opacity-50 group-hover:opacity-75 transition-opacity" />
+                    <div className="relative bg-gradient-to-br from-blue-500 to-teal-600 p-2 rounded-lg">
+                      <Calendar className="w-5 h-5 text-white" />
+                    </div>
                   </div>
+                  <CardTitle className="text-lg">My Appointments</CardTitle>
                 </div>
-                <CardTitle className="text-lg">Join Consultation</CardTitle>
-              </div>
-              <CardDescription>Join your scheduled video call</CardDescription>
-            </CardHeader>
-            <CardContent className="relative">
-              <Button variant="outline" className="w-full border-blue-300 dark:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/30">
-                Join Call
-              </Button>
-            </CardContent>
-          </Card>
+                <CardDescription>View all your appointments</CardDescription>
+              </CardHeader>
+              <CardContent className="relative">
+                <Button variant="outline" className="w-full border-blue-300 dark:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/30">
+                  View All
+                </Button>
+              </CardContent>
+            </Card>
+          </Link>
 
           <Card className="border-teal-200/50 dark:border-teal-800/50 hover:shadow-xl transition-all duration-300 group relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -199,20 +260,71 @@ export default async function PatientDashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-12">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-cyan-50 dark:bg-cyan-950/30 rounded-full mb-4">
-                <Calendar className="w-8 h-8 text-cyan-600 dark:text-cyan-400" />
+            {loading ? (
+              <div className="text-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-cyan-600" />
+                <p className="text-sm text-muted-foreground">Loading appointments...</p>
               </div>
-              <p className="text-sm text-muted-foreground mb-4">
-                No upcoming appointments. Book your first consultation!
-              </p>
-              <Link href="/patient/book-appointment">
-                <Button className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  Book Appointment
-                </Button>
-              </Link>
-            </div>
+            ) : appointments.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-cyan-50 dark:bg-cyan-950/30 rounded-full mb-4">
+                  <Calendar className="w-8 h-8 text-cyan-600 dark:text-cyan-400" />
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  No upcoming appointments. Book your first consultation!
+                </p>
+                <Link href="/patient/book-appointment">
+                  <Button className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Book Appointment
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {appointments.map((appointment) => (
+                  <div key={appointment.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold">
+                        {appointment.doctor?.full_name?.charAt(0) || 'D'}
+                      </div>
+                      <div>
+                        <p className="font-semibold">Dr. {appointment.doctor?.full_name || 'Doctor'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(appointment.date).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric'
+                          })} at {appointment.time ? (() => {
+                            const timeParts = appointment.time.split(':')
+                            const hours = parseInt(timeParts[0])
+                            const minutes = timeParts[1]?.padStart(2, '0') || '00'
+                            const ampm = hours >= 12 ? 'PM' : 'AM'
+                            const displayHour = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours
+                            return `${displayHour}:${minutes} ${ampm}`
+                          })() : new Date(appointment.date).toLocaleTimeString('en-US', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                    <Link href={`/consultation/${appointment.id}/room?userType=patient`}>
+                      <Button size="sm" className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white">
+                        <Video className="w-4 h-4 mr-1" />
+                        Join
+                      </Button>
+                    </Link>
+                  </div>
+                ))}
+                {appointments.length > 0 && (
+                  <Link href="/patient/appointments">
+                    <Button variant="outline" className="w-full mt-2">
+                      View All Appointments
+                    </Button>
+                  </Link>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       </main>

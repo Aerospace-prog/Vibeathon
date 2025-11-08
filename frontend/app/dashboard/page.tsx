@@ -112,6 +112,13 @@ export default async function DashboardPage() {
                   <span className="absolute inset-x-0 -bottom-1 h-0.5 bg-gradient-to-r from-teal-500 to-cyan-500 transform scale-x-100 transition-transform" />
                 </Link>
                 <Link 
+                  href="/doctor/appointments" 
+                  className="relative text-sm font-semibold text-muted-foreground hover:text-primary transition-colors group"
+                >
+                  <span className="relative z-10">My Appointments</span>
+                  <span className="absolute inset-x-0 -bottom-1 h-0.5 bg-gradient-to-r from-teal-500 to-cyan-500 transform scale-x-0 group-hover:scale-x-100 transition-transform" />
+                </Link>
+                <Link 
                   href="/records" 
                   className="relative text-sm font-semibold text-muted-foreground hover:text-primary transition-colors group"
                 >
@@ -206,34 +213,85 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* Quick Action Card with Hover Effect */}
+        {/* Appointments Section */}
         <div className="relative group">
           <div className="absolute inset-0 bg-gradient-to-r from-teal-500/20 to-cyan-500/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500" />
-          <Card className="relative border-2 border-white/20 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl shadow-2xl hover:shadow-teal-500/20 transform hover:scale-[1.02] transition-all duration-500 overflow-hidden">
+          <Card className="relative border-2 border-white/20 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl shadow-2xl hover:shadow-teal-500/20 transition-all duration-500 overflow-hidden">
             {/* Animated gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-r from-teal-500/0 via-cyan-500/10 to-teal-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
             
             <CardHeader className="relative">
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-xl blur-md opacity-50 animate-pulse" />
-                  <div className="relative bg-gradient-to-br from-teal-500 to-cyan-600 p-3 rounded-xl shadow-lg transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
-                    <Activity className="w-6 h-6 text-white" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-xl blur-md opacity-50 animate-pulse" />
+                    <div className="relative bg-gradient-to-br from-teal-500 to-cyan-600 p-3 rounded-xl shadow-lg transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                      <Activity className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                  <div>
+                    <CardTitle className="text-2xl font-bold flex items-center gap-2">
+                      My Appointments
+                      <Sparkles className="w-5 h-5 text-yellow-500 animate-pulse" />
+                    </CardTitle>
+                    <CardDescription className="text-base">
+                      Your upcoming patient consultations
+                    </CardDescription>
                   </div>
                 </div>
-                <div>
-                  <CardTitle className="text-2xl font-bold flex items-center gap-2">
-                    Start New Consultation
-                    <Sparkles className="w-5 h-5 text-yellow-500 animate-pulse" />
-                  </CardTitle>
-                  <CardDescription className="text-base">
-                    Begin a new video consultation with real-time translation
-                  </CardDescription>
-                </div>
+                <Link href="/doctor/appointments">
+                  <Button variant="outline" className="border-teal-300 dark:border-teal-700 hover:bg-teal-50 dark:hover:bg-teal-950/30">
+                    View All
+                  </Button>
+                </Link>
               </div>
             </CardHeader>
             <CardContent className="relative">
-              <StartCallButton />
+              {upcomingConsultations.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="inline-flex items-center justify-center w-16 h-16 bg-teal-50 dark:bg-teal-950/30 rounded-full mb-4">
+                    <Activity className="w-8 h-8 text-teal-600 dark:text-teal-400" />
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    No upcoming appointments scheduled
+                  </p>
+                  <StartCallButton />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {upcomingConsultations.slice(0, 3).map((consultation) => {
+                    const patient = Array.isArray(consultation.patients) 
+                      ? consultation.patients[0] 
+                      : consultation.patients
+                    
+                    return (
+                      <div key={consultation.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-full flex items-center justify-center text-white font-bold">
+                            {patient?.name?.charAt(0) || 'P'}
+                          </div>
+                          <div>
+                            <p className="font-semibold">{patient?.name || 'Patient'}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(consultation.consultation_date).toLocaleString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                        <Link href={`/consultation/${consultation.id}/room?userType=doctor`}>
+                          <Button size="sm" className="bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white">
+                            Join
+                          </Button>
+                        </Link>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
