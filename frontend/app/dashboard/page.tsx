@@ -45,7 +45,7 @@ export default async function DashboardPage() {
     redirect('/patient/dashboard')
   }
 
-  // Fetch doctor profile from database
+  // Fetch doctor profile
   let doctorName = 'Doctor'
   try {
     const { data: doctorProfile } = await supabase
@@ -53,7 +53,7 @@ export default async function DashboardPage() {
       .select('full_name')
       .eq('id', user.id)
       .single()
-    
+
     if (doctorProfile?.full_name) {
       doctorName = doctorProfile.full_name
     } else {
@@ -63,23 +63,20 @@ export default async function DashboardPage() {
     doctorName = extractDoctorName(user.email || 'Doctor')
   }
 
-  // Fetch scheduled appointments from database
+  // Fetch appointments
   let scheduledAppointments: Appointment[] = []
   let totalAppointments = 0
-  
+
   try {
-    // Get today's date
     const today = new Date().toISOString().split('T')[0]
-    
-    // Fetch all appointments for stats
+
     const { data: allAppointments } = await supabase
       .from('appointments')
       .select('id, status')
       .eq('doctor_id', user.id)
     
     totalAppointments = allAppointments?.length || 0
-    
-    // Fetch upcoming scheduled appointments
+
     const { data: appointments, error } = await supabase
       .from('appointments')
       .select('*')
@@ -109,26 +106,23 @@ export default async function DashboardPage() {
             <div className="flex items-center gap-8">
               <AnimatedLogo size="md" href="/dashboard" />
               <nav className="hidden md:flex gap-6">
-                <Link 
-                  href="/dashboard" 
-                  className="text-sm font-medium text-primary"
-                >
+                <Link href="/dashboard" className="text-sm font-medium text-primary">
                   Dashboard
                 </Link>
-                <Link 
-                  href="/doctor/appointments" 
+                <Link
+                  href="/doctor/appointments"
                   className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
                 >
                   My Appointments
                 </Link>
-                <Link 
-                  href="/records" 
+                <Link
+                  href="/records"
                   className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
                 >
                   Patient Records
                 </Link>
-                <Link 
-                  href="/profile" 
+                <Link
+                  href="/profile"
                   className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
                 >
                   Profile
@@ -143,7 +137,7 @@ export default async function DashboardPage() {
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Main */}
       <main className="max-w-7xl mx-auto p-6">
         {/* Welcome Hero Section */}
         <div className="relative mb-8 overflow-hidden">

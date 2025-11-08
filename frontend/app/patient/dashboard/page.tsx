@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { LogoutButton } from '@/components/dashboard/logout-button'
 import { AnimatedLogo } from '@/components/ui/animated-logo'
 import { Calendar, FileText, Video, Heart, Clock, Loader2 } from 'lucide-react'
+import { DailyWellnessTips } from '@/components/wellness/DailyWellnessTips'
 
 // Extract patient name from email
 function extractPatientName(email: string): string {
@@ -369,6 +370,11 @@ export default function PatientDashboard() {
             )}
           </CardContent>
         </Card>
+
+        {/* Daily Wellness Tips */}
+        <div className="mb-8">
+          <DailyWellnessTips />
+        </div>
 
         {/* Lab Reports */}
         <Card className="border-zinc-200/50 dark:border-zinc-800/50 hover:shadow-xl transition-all duration-300 group relative overflow-hidden">
