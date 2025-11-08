@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
-import VideoCallRoom from '@/components/VideoCallRoom'
+import VideoCallRoomWithSignaling from '@/components/VideoCallRoomWithSignaling'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -23,5 +23,5 @@ export default async function ConsultationRoomPage({ params, searchParams }: Pag
   // Validate userType
   const validUserType = userType === 'doctor' || userType === 'patient' ? userType : 'doctor'
 
-  return <VideoCallRoom consultationId={id} userType={validUserType} />
+  return <VideoCallRoomWithSignaling consultationId={id} userType={validUserType} />
 }
