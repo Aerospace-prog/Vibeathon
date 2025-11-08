@@ -42,12 +42,23 @@ export default function VideoCallRoom({ consultationId, userType }: VideoCallRoo
   const [captions, setCaptions] = useState<CaptionMessage[]>([])
   const [isCallActive, setIsCallActive] = useState(false)
   const [mediaError, setMediaError] = useState<string | null>(null)
+  const [debugMode] = useState(process.env.NEXT_PUBLIC_DEBUG_MODE === 'true')
   
   const captionsEndRef = useRef<HTMLDivElement>(null)
 
   // WebSocket with retry logic
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'
   const wsUrl = backendUrl.replace('http', 'ws')
+  
+  // Debug logging
+  useEffect(() => {
+    if (debugMode) {
+      console.log('🔍 Debug Mode: ON')
+      console.log('📹 Local video ref:', localVideoRef.current)
+      console.log('📹 Local stream:', localStreamRef.current)
+      console.log('🎬 Call active:', isCallActive)
+    }
+  }, [debugMode, isCallActive])
   
   const {
     ws,
@@ -59,7 +70,7 @@ export default function VideoCallRoom({ consultationId, userType }: VideoCallRoo
     close: wsClose
   } = useWebSocketWithRetry({
     url: `${wsUrl}/ws/${consultationId}/${userType}`,
-    enabled: isCallActive,
+    enabled: isCallActive && !debugMode, // Disable WebSocket in debug mode
     maxRetries: 3,
     retryDelay: 2000,
     onMessage: (event) => {
@@ -73,11 +84,15 @@ export default function VideoCallRoom({ consultationId, userType }: VideoCallRoo
     },
     onOpen: () => {
       console.log('WebSocket connected, starting audio streaming')
-      startAudioStreaming()
+      if (!debugMode) {
+        startAudioStreaming()
+      }
     },
     onError: (error) => {
       console.error('WebSocket error:', error)
-      setError('Connection to translation service failed')
+      if (!debugMode) {
+        setError('Connection to translation service failed')
+      }
     }
   })
 
@@ -123,6 +138,13 @@ export default function VideoCallRoom({ consultationId, userType }: VideoCallRoo
         // Display local video
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream
+          // Ensure video plays
+          localVideoRef.current.play().catch(err => {
+            console.error('Error playing local video:', err)
+          })
+          console.log('✅ Local video stream set:', stream.getTracks())
+        } else {
+          console.error('❌ Local video ref is null!')
         }
 
         // Set up WebRTC peer connection

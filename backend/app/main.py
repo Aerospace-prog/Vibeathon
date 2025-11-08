@@ -128,12 +128,19 @@ async def websocket_endpoint(websocket: WebSocket, consultation_id: str, user_ty
     # Get dependencies
     try:
         stt_pipeline = get_stt_pipeline()
-        db_client = get_database_client()
     except Exception as e:
-        logger.error(f"Failed to initialize dependencies: {e}")
+        logger.error(f"Failed to initialize STT pipeline: {e}")
         await manager.disconnect(consultation_id, user_type)
-        await websocket.close(code=1011, reason="Service initialization failed")
+        await websocket.close(code=1011, reason="STT service initialization failed")
         return
+    
+    # Try to get database client, but don't fail if unavailable
+    db_client = None
+    try:
+        db_client = get_database_client()
+        logger.info("Database client initialized for WebSocket")
+    except Exception as e:
+        logger.warning(f"Database client unavailable, transcripts won't be saved: {e}")
     
     try:
         while True:
