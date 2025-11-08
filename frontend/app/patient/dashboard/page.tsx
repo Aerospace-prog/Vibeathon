@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { LogoutButton } from '@/components/dashboard/logout-button'
 import { AnimatedLogo } from '@/components/ui/animated-logo'
 import { Calendar, FileText, Video, Heart, Clock, User } from 'lucide-react'
-import PatientSymptomChecker from '@/components/patient/PatientSymptomChecker'
 
 // Extract patient name from email
 function extractPatientName(email: string): string {
@@ -183,11 +182,6 @@ export default async function PatientDashboard() {
           </Card>
         </div>
 
-        {/* Symptom Checker */}
-        <div className="mb-8">
-          <PatientSymptomChecker />
-        </div>
-
         {/* Upcoming Appointments */}
         <Card className="border-zinc-200/50 dark:border-zinc-800/50">
           <CardHeader>
@@ -212,10 +206,12 @@ export default async function PatientDashboard() {
               <p className="text-sm text-muted-foreground mb-4">
                 No upcoming appointments. Book your first consultation!
               </p>
-              <Button className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white">
-                <Calendar className="w-4 h-4 mr-2" />
-                Book Appointment
-              </Button>
+              <Link href="/patient/book-appointment">
+                <Button className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Book Appointment
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>

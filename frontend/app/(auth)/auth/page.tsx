@@ -85,13 +85,15 @@ export default function AuthPage() {
     setMounted(true)
   }, [])
 
-  // Compute email placeholder - only use after mounted to avoid hydration mismatch
-  const emailPlaceholder = mounted && mode === 'signup' 
+  // Compute email placeholder - consistent for SSR
+  const emailPlaceholder = mode === 'signup' 
     ? (role === 'doctor' ? 'doctor@arogya.ai' : 'patient@arogya.ai')
     : 'your.email@example.com'
 
   // Rotate quotes every 7 seconds
   useEffect(() => {
+    if (!mounted) return
+    
     const interval = setInterval(() => {
       setFadeIn(false)
       setTimeout(() => {
@@ -101,7 +103,7 @@ export default function AuthPage() {
     }, 7000)
 
     return () => clearInterval(interval)
-  }, [])
+  }, [mounted])
 
   const validateForm = () => {
     if (!email || !password) {
@@ -195,144 +197,121 @@ export default function AuthPage() {
     }
   }
 
-  return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 dark:from-teal-950 dark:via-cyan-950 dark:to-blue-950 p-4">
-      {/* Animated gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-teal-400/20 via-cyan-400/20 to-blue-400/20 animate-gradient-shift" />
-      
-      {/* Animated particles/dots */}
-      {mounted && (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute w-1 h-1 bg-teal-400/30 rounded-full animate-particle" style={{ left: '15%', top: '20%', animationDelay: '0s', animationDuration: '18s' }} />
-          <div className="absolute w-1 h-1 bg-teal-400/30 rounded-full animate-particle" style={{ left: '85%', top: '15%', animationDelay: '1s', animationDuration: '22s' }} />
-          <div className="absolute w-1 h-1 bg-teal-400/30 rounded-full animate-particle" style={{ left: '25%', top: '60%', animationDelay: '2s', animationDuration: '20s' }} />
-          <div className="absolute w-1 h-1 bg-teal-400/30 rounded-full animate-particle" style={{ left: '70%', top: '80%', animationDelay: '0.5s', animationDuration: '19s' }} />
-          <div className="absolute w-1 h-1 bg-teal-400/30 rounded-full animate-particle" style={{ left: '45%', top: '30%', animationDelay: '1.5s', animationDuration: '21s' }} />
-          <div className="absolute w-1 h-1 bg-teal-400/30 rounded-full animate-particle" style={{ left: '60%', top: '50%', animationDelay: '2.5s', animationDuration: '17s' }} />
-          <div className="absolute w-1 h-1 bg-teal-400/30 rounded-full animate-particle" style={{ left: '10%', top: '70%', animationDelay: '3s', animationDuration: '23s' }} />
-          <div className="absolute w-1 h-1 bg-teal-400/30 rounded-full animate-particle" style={{ left: '90%', top: '40%', animationDelay: '1.8s', animationDuration: '16s' }} />
-          <div className="absolute w-1 h-1 bg-teal-400/30 rounded-full animate-particle" style={{ left: '35%', top: '85%', animationDelay: '0.8s', animationDuration: '24s' }} />
-          <div className="absolute w-1 h-1 bg-teal-400/30 rounded-full animate-particle" style={{ left: '75%', top: '25%', animationDelay: '2.2s', animationDuration: '19s' }} />
+  // Don't render until mounted to avoid hydration issues with browser extensions
+  if (!mounted) {
+    return (
+      <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+        <div className="animate-pulse">
+          <Activity className="w-8 h-8 text-teal-500 animate-spin" />
         </div>
-      )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-4 overflow-hidden">
+      {/* Subtle pattern overlay */}
+      <div className="absolute inset-0 opacity-5" style={{
+        backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)',
+        backgroundSize: '40px 40px'
+      }} />
       
-      {/* Floating medical icons */}
+      {/* Floating medical icons - subtle and contained */}
       {mounted && (
-        <>
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <FloatingIcon Icon={Heart} delay={0} duration={8} x="10%" y="15%" />
           <FloatingIcon Icon={Stethoscope} delay={1} duration={10} x="85%" y="20%" />
           <FloatingIcon Icon={Activity} delay={2} duration={7} x="15%" y="75%" />
           <FloatingIcon Icon={Pill} delay={0.5} duration={9} x="80%" y="70%" />
-          <FloatingIcon Icon={Syringe} delay={1.5} duration={11} x="5%" y="45%" />
-          <FloatingIcon Icon={Thermometer} delay={2.5} duration={8} x="90%" y="50%" />
           <FloatingIcon Icon={Brain} delay={3} duration={10} x="25%" y="85%" />
           <FloatingIcon Icon={Dna} delay={1.8} duration={9} x="75%" y="10%" />
-        </>
+        </div>
       )}
 
-      {/* DNA Helix decoration */}
-      <div className="absolute left-0 top-0 h-full w-32 opacity-5">
-        <div className="h-full w-full bg-gradient-to-b from-teal-500 via-cyan-500 to-blue-500 animate-dna-rotate" 
-             style={{ clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)' }} />
-      </div>
-      <div className="absolute right-0 top-0 h-full w-32 opacity-5">
-        <div className="h-full w-full bg-gradient-to-b from-blue-500 via-cyan-500 to-teal-500 animate-dna-rotate-reverse" 
-             style={{ clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)' }} />
-      </div>
-
-      {/* Side Quote Panels - Desktop Only */}
+      {/* Side Info Panels - Desktop Only */}
       {mounted && (
         <>
-          {/* Left Quote Panel */}
+          {/* Left Panel */}
           <div className="hidden lg:block absolute left-8 top-1/2 -translate-y-1/2 w-64 z-5">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-lg border-2 border-teal-200 dark:border-teal-800">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="bg-gradient-to-br from-teal-500 to-cyan-600 p-2.5 rounded-lg">
+                  <Heart className="w-5 h-5 text-white animate-heartbeat" />
+                </div>
+                <h3 className="font-bold text-teal-900 dark:text-teal-100">Healthcare Excellence</h3>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                  <div className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
+                  <span>AI-Powered Translation</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" style={{ animationDelay: '0.2s' }} />
+                  <span>Real-time Consultations</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: '0.4s' }} />
+                  <span>SOAP Note Generation</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                  <div className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" style={{ animationDelay: '0.6s' }} />
+                  <span>Multilingual Support</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Panel - Rotating Quote */}
+          <div className="hidden lg:block absolute right-8 top-1/2 -translate-y-1/2 w-64 z-5">
             <div 
-              className={`backdrop-blur-lg bg-gradient-to-br from-white/70 to-teal-50/70 dark:from-zinc-900/70 dark:to-teal-950/70 rounded-2xl p-6 shadow-xl border border-teal-200/40 dark:border-teal-800/40 transition-all duration-700 ${
-                fadeIn ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'
+              className={`bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-lg border-2 border-cyan-200 dark:border-cyan-800 transition-all duration-700 ${
+                fadeIn ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4'
               }`}
             >
               <div className="flex items-center gap-3 mb-4">
-                <div className="bg-gradient-to-br from-teal-500 to-cyan-600 p-2.5 rounded-lg">
+                <div className="bg-gradient-to-br from-cyan-500 to-blue-600 p-2.5 rounded-lg">
                   {(() => {
                     const QuoteIcon = medicalQuotes[currentQuoteIndex].icon
                     return <QuoteIcon className="w-5 h-5 text-white" />
                   })()}
                 </div>
-                <div className="h-px flex-1 bg-gradient-to-r from-teal-500/50 to-transparent" />
+                <div className="h-px flex-1 bg-gradient-to-r from-cyan-500/50 to-transparent" />
               </div>
-              <p className="text-sm font-medium text-teal-900 dark:text-teal-100 leading-relaxed mb-3 italic">
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed mb-3 italic">
                 "{medicalQuotes[currentQuoteIndex].text}"
               </p>
-              <p className="text-xs text-teal-600 dark:text-teal-400 font-semibold">
+              <p className="text-xs text-cyan-600 dark:text-cyan-400 font-semibold">
                 — {medicalQuotes[currentQuoteIndex].author}
               </p>
-            </div>
-          </div>
-
-          {/* Right Quote Panel */}
-          <div className="hidden lg:block absolute right-8 top-1/2 -translate-y-1/2 w-64 z-5">
-            <div 
-              className={`backdrop-blur-lg bg-gradient-to-bl from-white/70 to-cyan-50/70 dark:from-zinc-900/70 dark:to-cyan-950/70 rounded-2xl p-6 shadow-xl border border-cyan-200/40 dark:border-cyan-800/40 transition-all duration-700 ${
-                fadeIn ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'
-              }`}
-            >
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Heart className="w-4 h-4 text-teal-500 animate-heartbeat" />
-                  <span className="text-xs font-semibold text-teal-700 dark:text-teal-300">Healthcare Excellence</span>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-xs text-teal-600 dark:text-teal-400">
-                    <div className="w-1.5 h-1.5 rounded-full bg-teal-500" />
-                    <span>AI-Powered Translation</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-teal-600 dark:text-teal-400">
-                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
-                    <span>Real-time Consultations</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-teal-600 dark:text-teal-400">
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                    <span>SOAP Note Generation</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-teal-600 dark:text-teal-400">
-                    <div className="w-1.5 h-1.5 rounded-full bg-teal-500" />
-                    <span>Multilingual Support</span>
-                  </div>
-                </div>
+              
+              {/* Quote indicators */}
+              <div className="flex gap-1.5 mt-4 justify-center">
+                {medicalQuotes.map((_, index) => (
+                  <div
+                    key={index}
+                    className={`h-1.5 rounded-full transition-all duration-500 ${
+                      index === currentQuoteIndex
+                        ? 'w-6 bg-gradient-to-r from-cyan-500 to-blue-600'
+                        : 'w-1.5 bg-slate-300 dark:bg-slate-700'
+                    }`}
+                  />
+                ))}
               </div>
-            </div>
-          </div>
-
-          {/* Bottom Quote Indicator */}
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20">
-            <div className="flex gap-2 items-center backdrop-blur-md bg-white/50 dark:bg-zinc-900/50 px-5 py-2.5 rounded-full border border-teal-200/50 dark:border-teal-800/50 shadow-lg">
-              {medicalQuotes.map((_, index) => (
-                <div
-                  key={index}
-                  className={`h-2 rounded-full transition-all duration-500 ${
-                    index === currentQuoteIndex
-                      ? 'w-10 bg-gradient-to-r from-teal-500 to-cyan-600 shadow-md shadow-teal-500/50'
-                      : 'w-2 bg-teal-400/40 dark:bg-teal-600/40 hover:bg-teal-400/60 dark:hover:bg-teal-600/60 cursor-pointer'
-                  }`}
-                />
-              ))}
             </div>
           </div>
         </>
       )}
 
-      {/* Main card with glassmorphism */}
-      <Card className="relative z-10 w-full max-w-md backdrop-blur-xl bg-white/80 dark:bg-zinc-900/80 border-teal-200/50 dark:border-teal-800/50 shadow-2xl shadow-teal-500/10">
-        {/* Animated pulse ring */}
-        <div className="absolute -inset-1 bg-gradient-to-r from-teal-500 via-cyan-500 to-blue-500 rounded-lg blur-lg opacity-20 animate-pulse-slow" />
+      {/* Main card with clean design */}
+      <Card className="relative z-10 w-full max-w-md bg-white dark:bg-zinc-900 border-2 border-teal-200 dark:border-teal-800 shadow-2xl overflow-hidden transition-shadow duration-500 hover:shadow-teal-500/20 hover:shadow-3xl">
+        {/* Animated gradient header */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-teal-500 via-cyan-500 to-blue-500 animate-gradient" style={{ backgroundSize: '200% 200%' }} />
         
-        <CardHeader className="relative space-y-3">
+        <CardHeader className="relative space-y-3 pt-8">
           {/* Logo/Icon */}
           <div className="flex justify-center mb-2">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full blur-xl opacity-50 animate-pulse-slow" />
-              <div className="relative bg-gradient-to-br from-teal-500 to-cyan-600 p-4 rounded-full shadow-lg">
-                <Activity className="w-8 h-8 text-white animate-heartbeat" />
-              </div>
+            <div className="bg-gradient-to-br from-teal-500 to-cyan-600 p-4 rounded-full shadow-lg">
+              <Activity className="w-8 h-8 text-white animate-heartbeat" />
             </div>
           </div>
           
@@ -354,8 +333,7 @@ export default function AuthPage() {
                 <Heart size={16} className="animate-pulse-slow" />
                 Email Address
               </label>
-              <div suppressHydrationWarning>
-                <Input
+              <Input
                   id="email"
                   type="email"
                   placeholder={emailPlaceholder}
@@ -365,7 +343,6 @@ export default function AuthPage() {
                   aria-invalid={!!error}
                   className="border-teal-200 dark:border-teal-800 focus:border-teal-500 focus:ring-teal-500 transition-all duration-300"
                 />
-              </div>
             </div>
 
             <div className="space-y-2">
@@ -373,8 +350,7 @@ export default function AuthPage() {
                 <Stethoscope size={16} className="animate-pulse-slow" />
                 Password
               </label>
-              <div suppressHydrationWarning>
-                <Input
+              <Input
                   id="password"
                   type="password"
                   placeholder="••••••••"
@@ -384,7 +360,6 @@ export default function AuthPage() {
                   aria-invalid={!!error}
                   className="border-teal-200 dark:border-teal-800 focus:border-teal-500 focus:ring-teal-500 transition-all duration-300"
                 />
-              </div>
             </div>
 
             {/* Role Selection - Only show during signup */}
@@ -432,8 +407,13 @@ export default function AuthPage() {
               </div>
             )}
 
-            <div suppressHydrationWarning>
-              <Button 
+            {error && (
+              <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 p-3 rounded-lg border border-red-200 dark:border-red-800 animate-shake">
+                {error}
+              </div>
+            )}
+
+            <Button 
                 type="submit" 
                 className="w-full bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white font-semibold py-6 rounded-lg shadow-lg shadow-teal-500/30 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]" 
                 disabled={loading}
@@ -450,7 +430,6 @@ export default function AuthPage() {
                   </span>
                 )}
               </Button>
-            </div>
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -463,21 +442,19 @@ export default function AuthPage() {
               </div>
             </div>
 
-            <div suppressHydrationWarning>
-              <button
-                type="button"
-                onClick={() => {
-                  setMode(mode === 'signin' ? 'signup' : 'signin')
-                  setError('')
-                }}
-                className="w-full text-center text-sm font-medium text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors duration-200 py-2"
-                disabled={loading}
-              >
-                {mode === 'signin'
-                  ? '✨ Create your free account'
-                  : '🔐 Sign in to your account'}
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setMode(mode === 'signin' ? 'signup' : 'signin')
+                setError('')
+              }}
+              className="w-full text-center text-sm font-medium text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors duration-200 py-2"
+              disabled={loading}
+            >
+              {mode === 'signin'
+                ? '✨ Create your free account'
+                : '🔐 Sign in to your account'}
+            </button>
           </form>
 
           {/* Trust indicators */}

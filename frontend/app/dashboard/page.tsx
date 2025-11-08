@@ -4,8 +4,6 @@ import { createClient } from '@/lib/supabase-server'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { StartCallButton } from '@/components/dashboard/start-call-button'
-import AlertEngineSection from '@/components/dashboard/AlertEngineSection'
-import EmotionAnalyzerSection from '@/components/dashboard/EmotionAnalyzerSection'
 import { LogoutButton } from '@/components/dashboard/logout-button'
 import { AnimatedLogo } from '@/components/ui/animated-logo'
 import { Activity, Users, TrendingUp, Zap, Sparkles, Heart, Brain, Shield } from 'lucide-react'
@@ -229,16 +227,6 @@ export default async function DashboardPage() {
               </div>
             </div>
           ))}
-        </div>
-
-        {/* Alert Engine with Modern Design */}
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-700" style={{ animationDelay: '200ms' }}>
-          <AlertEngineSection />
-        </div>
-
-        {/* Emotion Analyzer with Modern Design */}
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-700" style={{ animationDelay: '400ms' }}>
-          <EmotionAnalyzerSection />
         </div>
       </main>
     </div>
