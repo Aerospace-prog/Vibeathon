@@ -353,12 +353,112 @@ function BookingDialog({ doctor, open, onClose, symptomCategory, severity }: {
     return `${displayHour}:${minutes} ${ampm}`
   }
 
-  const handleConfirmBooking = async () => {
+  const handlePayment = async () => {
     setIsBooking(true)
     setError(null)
 
     try {
-      // Get patient ID from session (you'll need to implement this based on your auth)
+      const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID
+      const isTestMode = razorpayKey?.startsWith('rzp_test_')
+      
+      console.log('Razorpay Key:', razorpayKey ? 'Loaded' : 'Missing')
+      console.log('Test Mode:', isTestMode)
+      
+      if (!razorpayKey || razorpayKey === 'rzp_test_dummy') {
+        throw new Error('Razorpay key not configured. Please add NEXT_PUBLIC_RAZORPAY_KEY_ID to .env.local')
+      }
+
+      // Initialize Razorpay payment with test mode configuration
+      const options: any = {
+        key: razorpayKey,
+        amount: doctor.consultationFee * 100, // Amount in paise (₹800 = 80000 paise)
+        currency: 'INR',
+        name: 'Arogya-AI',
+        description: `Consultation with ${doctor.name}`,
+        image: '/logo.png',
+        handler: async function (response: any) {
+          // Payment successful, now create appointment
+          await handleConfirmBooking(response.razorpay_payment_id)
+        },
+        prefill: {
+          name: 'Test Patient', // Test mode prefill
+          email: 'test@example.com',
+          contact: '9999999999'
+        },
+        notes: {
+          doctor_id: doctor.id,
+          date: selectedDate,
+          time: selectedTime,
+          test_mode: isTestMode
+        },
+        theme: {
+          color: '#14b8a6' // Teal color matching your theme
+        },
+        modal: {
+          ondismiss: function() {
+            setIsBooking(false)
+            setError('Payment cancelled')
+          },
+          confirm_close: true,
+          escape: true,
+          backdropclose: true
+        }
+      }
+
+      // In test mode, configure for domestic cards and enable all test features
+      if (isTestMode) {
+        // Enable all card networks including domestic
+        options.config = {
+          display: {
+            blocks: {
+              banks: {
+                name: 'Pay using Cards (Test Mode)',
+                instruments: [
+                  {
+                    method: 'card',
+                    types: ['credit', 'debit'],
+                    networks: ['Visa', 'MasterCard', 'Maestro', 'RuPay']
+                  }
+                ]
+              }
+            },
+            sequence: ['block.banks'],
+            preferences: {
+              show_default_blocks: false // Hide UPI, wallets, netbanking in test mode
+            }
+          }
+        }
+        
+        // Add test mode notice with multiple card options
+        console.warn('🧪 TEST MODE: Card payments available')
+        console.warn('International Card: 4111 1111 1111 1111')
+        console.warn('Domestic Card: 5267 3181 8797 5449 (Mastercard)')
+        console.warn('RuPay Card: 6521 5499 8435 2187')
+      }
+
+      // Load Razorpay script if not already loaded
+      if (typeof window !== 'undefined' && !(window as any).Razorpay) {
+        const script = document.createElement('script')
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+        script.async = true
+        script.onload = () => {
+          const rzp = new (window as any).Razorpay(options)
+          rzp.open()
+        }
+        document.body.appendChild(script)
+      } else if (typeof window !== 'undefined') {
+        const rzp = new (window as any).Razorpay(options)
+        rzp.open()
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Payment failed')
+      setIsBooking(false)
+    }
+  }
+
+  const handleConfirmBooking = async (paymentId: string) => {
+    try {
+      // Get patient ID from session
       const patientId = 'current-user-id' // TODO: Get from auth context
       
       const response = await fetch('http://localhost:8000/api/appointments', {
@@ -373,7 +473,9 @@ function BookingDialog({ doctor, open, onClose, symptomCategory, severity }: {
           severity: severity,
           date: selectedDate,
           time: selectedTime,
-          consultation_fee: doctor.consultationFee
+          consultation_fee: doctor.consultationFee,
+          payment_id: paymentId,
+          payment_status: 'completed'
         }),
       })
 
@@ -386,13 +488,14 @@ function BookingDialog({ doctor, open, onClose, symptomCategory, severity }: {
       console.log('Appointment created:', appointment)
 
       setBookingConfirmed(true)
+      setIsBooking(false)
+      
       setTimeout(() => {
         onClose()
         setBookingConfirmed(false)
         setSelectedDate('')
         setSelectedTime('')
         setError(null)
-        // Optionally redirect to appointments page
         window.location.href = '/patient/dashboard'
       }, 2000)
     } catch (err) {
@@ -503,21 +606,58 @@ function BookingDialog({ doctor, open, onClose, symptomCategory, severity }: {
               </Card>
             )}
 
-            {/* Confirm Button */}
+            {/* Payment Button */}
             <Button
-              onClick={handleConfirmBooking}
+              onClick={handlePayment}
               disabled={!selectedDate || !selectedTime || isBooking}
-              className="w-full h-12 bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white"
+              className="w-full h-12 bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white gap-2"
             >
               {isBooking ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Booking...
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Processing...
                 </>
               ) : (
-                'Confirm Booking'
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
+                  Pay ₹{doctor.consultationFee} & Book
+                </>
               )}
             </Button>
+            
+            {/* Payment Info */}
+            <div className="text-center text-xs text-slate-500 dark:text-slate-400">
+              <p>🔒 Secure payment powered by Razorpay</p>
+              {process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID?.startsWith('rzp_test_') ? (
+                <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded">
+                  <p className="text-amber-700 dark:text-amber-400 font-medium mb-2">🧪 TEST MODE - Try These Cards</p>
+                  
+                  <div className="space-y-2 text-left">
+                    <div className="bg-white dark:bg-slate-800 p-2 rounded border border-amber-200 dark:border-amber-700">
+                      <p className="text-amber-700 dark:text-amber-400 font-semibold text-[11px]">✅ Domestic Mastercard (Recommended)</p>
+                      <p className="text-amber-600 dark:text-amber-500 font-mono text-[10px]">5267 3181 8797 5449</p>
+                    </div>
+                    
+                    <div className="bg-white dark:bg-slate-800 p-2 rounded border border-amber-200 dark:border-amber-700">
+                      <p className="text-amber-700 dark:text-amber-400 font-semibold text-[11px]">✅ RuPay Card</p>
+                      <p className="text-amber-600 dark:text-amber-500 font-mono text-[10px]">6521 5499 8435 2187</p>
+                    </div>
+                    
+                    <div className="bg-white dark:bg-slate-800 p-2 rounded border border-amber-200 dark:border-amber-700">
+                      <p className="text-amber-700 dark:text-amber-400 font-semibold text-[11px]">⚠️ International Visa (may fail)</p>
+                      <p className="text-amber-600 dark:text-amber-500 font-mono text-[10px]">4111 1111 1111 1111</p>
+                    </div>
+                  </div>
+                  
+                  <p className="text-amber-600 dark:text-amber-500 mt-2 text-[10px]">CVV: Any 3 digits • Expiry: Any future date • Name: Any name</p>
+                  <p className="mt-1 text-[10px] text-amber-600 dark:text-amber-500 font-semibold">💡 No real money will be charged</p>
+                </div>
+              ) : (
+                <p className="mt-1">Cards • Net Banking • UPI • Wallets</p>
+              )}
+            </div>
           </div>
         )}
       </DialogContent>
