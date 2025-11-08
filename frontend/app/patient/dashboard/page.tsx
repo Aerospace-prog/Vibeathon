@@ -115,26 +115,28 @@ export default async function PatientDashboard() {
 
         {/* Quick Actions */}
         <div className="grid gap-6 md:grid-cols-3 mb-8">
-          <Card className="border-cyan-200/50 dark:border-cyan-800/50 hover:shadow-xl transition-all duration-300 group relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-            <CardHeader className="relative">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg blur-md opacity-50 group-hover:opacity-75 transition-opacity" />
-                  <div className="relative bg-gradient-to-br from-cyan-500 to-blue-600 p-2 rounded-lg">
-                    <Calendar className="w-5 h-5 text-white" />
+          <Link href="/patient/book-appointment">
+            <Card className="border-cyan-200/50 dark:border-cyan-800/50 hover:shadow-xl transition-all duration-300 group relative overflow-hidden cursor-pointer">
+              <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <CardHeader className="relative">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg blur-md opacity-50 group-hover:opacity-75 transition-opacity" />
+                    <div className="relative bg-gradient-to-br from-cyan-500 to-blue-600 p-2 rounded-lg">
+                      <Calendar className="w-5 h-5 text-white" />
+                    </div>
                   </div>
+                  <CardTitle className="text-lg">Book Appointment</CardTitle>
                 </div>
-                <CardTitle className="text-lg">Book Appointment</CardTitle>
-              </div>
-              <CardDescription>Schedule a consultation with a doctor</CardDescription>
-            </CardHeader>
-            <CardContent className="relative">
-              <Button className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white">
-                Book Now
-              </Button>
-            </CardContent>
-          </Card>
+                <CardDescription>Check symptoms & find doctors</CardDescription>
+              </CardHeader>
+              <CardContent className="relative">
+                <Button className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white">
+                  Book Now
+                </Button>
+              </CardContent>
+            </Card>
+          </Link>
 
           <Card className="border-blue-200/50 dark:border-blue-800/50 hover:shadow-xl transition-all duration-300 group relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-teal-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />

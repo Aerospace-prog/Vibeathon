@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Calendar, Clock, Star, Search, Filter, MapPin, Video, CheckCircle2 } from 'lucide-react'
+import { Calendar, Clock, Star, Search, Filter, MapPin, Video, CheckCircle2, Loader2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 interface Doctor {
@@ -313,6 +313,8 @@ export default function DoctorBooking({ symptomCategory, severity }: DoctorBooki
           doctor={selectedDoctor}
           open={showBookingDialog}
           onClose={() => setShowBookingDialog(false)}
+          symptomCategory={symptomCategory}
+          severity={severity}
         />
       )}
     </div>
@@ -320,10 +322,18 @@ export default function DoctorBooking({ symptomCategory, severity }: DoctorBooki
 }
 
 // Booking Dialog Component
-function BookingDialog({ doctor, open, onClose }: { doctor: Doctor; open: boolean; onClose: () => void }) {
+function BookingDialog({ doctor, open, onClose, symptomCategory, severity }: { 
+  doctor: Doctor; 
+  open: boolean; 
+  onClose: () => void;
+  symptomCategory?: string;
+  severity?: number;
+}) {
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedTime, setSelectedTime] = useState('')
   const [bookingConfirmed, setBookingConfirmed] = useState(false)
+  const [isBooking, setIsBooking] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const availableDates = [
     { date: new Date().toISOString().split('T')[0], label: 'Today' },
@@ -332,18 +342,63 @@ function BookingDialog({ doctor, open, onClose }: { doctor: Doctor; open: boolea
   ]
 
   const availableTimes = [
-    '09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM'
+    '09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00'
   ]
 
-  const handleConfirmBooking = () => {
-    // TODO: API call to book appointment
-    setBookingConfirmed(true)
-    setTimeout(() => {
-      onClose()
-      setBookingConfirmed(false)
-      setSelectedDate('')
-      setSelectedTime('')
-    }, 2000)
+  const formatTimeDisplay = (time: string) => {
+    const [hours, minutes] = time.split(':')
+    const hour = parseInt(hours)
+    const ampm = hour >= 12 ? 'PM' : 'AM'
+    const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour
+    return `${displayHour}:${minutes} ${ampm}`
+  }
+
+  const handleConfirmBooking = async () => {
+    setIsBooking(true)
+    setError(null)
+
+    try {
+      // Get patient ID from session (you'll need to implement this based on your auth)
+      const patientId = 'current-user-id' // TODO: Get from auth context
+      
+      const response = await fetch('http://localhost:8000/api/appointments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          patient_id: patientId,
+          doctor_id: doctor.id,
+          symptom_category: symptomCategory,
+          severity: severity,
+          date: selectedDate,
+          time: selectedTime,
+          consultation_fee: doctor.consultationFee
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Failed to book appointment')
+      }
+
+      const appointment = await response.json()
+      console.log('Appointment created:', appointment)
+
+      setBookingConfirmed(true)
+      setTimeout(() => {
+        onClose()
+        setBookingConfirmed(false)
+        setSelectedDate('')
+        setSelectedTime('')
+        setError(null)
+        // Optionally redirect to appointments page
+        window.location.href = '/patient/dashboard'
+      }, 2000)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to book appointment')
+      setIsBooking(false)
+    }
   }
 
   return (
@@ -422,7 +477,7 @@ function BookingDialog({ doctor, open, onClose }: { doctor: Doctor; open: boolea
                       onClick={() => setSelectedTime(time)}
                       className={selectedTime === time ? 'bg-teal-600 hover:bg-teal-700' : ''}
                     >
-                      {time}
+                      {formatTimeDisplay(time)}
                     </Button>
                   ))}
                 </div>
@@ -439,13 +494,29 @@ function BookingDialog({ doctor, open, onClose }: { doctor: Doctor; open: boolea
               </CardContent>
             </Card>
 
+            {/* Error Message */}
+            {error && (
+              <Card className="bg-red-50 dark:bg-red-950/30 border-red-200">
+                <CardContent className="pt-6">
+                  <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Confirm Button */}
             <Button
               onClick={handleConfirmBooking}
-              disabled={!selectedDate || !selectedTime}
+              disabled={!selectedDate || !selectedTime || isBooking}
               className="w-full h-12 bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white"
             >
-              Confirm Booking
+              {isBooking ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Booking...
+                </>
+              ) : (
+                'Confirm Booking'
+              )}
             </Button>
           </div>
         )}

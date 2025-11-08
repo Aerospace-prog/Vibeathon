@@ -15,8 +15,12 @@ import json
 from .alert_engine import AlertEngine, Alert
 from .emotion_analyzer import EmotionAnalyzer, EmotionResult
 from .database import DatabaseClient
+from .appointments import router as appointments_router
 
 app = FastAPI(title="Arogya-AI Medical Intelligence API")
+
+# Include appointment routes
+app.include_router(appointments_router)
 
 # Enable CORS for frontend integration
 app.add_middleware(
