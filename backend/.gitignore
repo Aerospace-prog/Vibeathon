@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 __pycache__/
 *.py[cod]
 *$py.class
@@ -10,15 +11,24 @@ ENV/
 .env
 *.log
 .DS_Store
+=======
+# Virtual Environment
+venv/
+path/
+
+>>>>>>> Stashed changes
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
+<<<<<<< Updated upstream
 env/
 venv/
 ENV/
+=======
+>>>>>>> Stashed changes
 build/
 develop-eggs/
 dist/
@@ -35,6 +45,7 @@ wheels/
 .installed.cfg
 *.egg
 
+<<<<<<< Updated upstream
 # Environment variables
 .env
 .env.local
@@ -43,6 +54,8 @@ wheels/
 *.json
 !package.json
 
+=======
+>>>>>>> Stashed changes
 # IDE
 .vscode/
 .idea/
@@ -50,6 +63,13 @@ wheels/
 *.swo
 *~
 
+<<<<<<< Updated upstream
+=======
+# Environment variables
+.env
+.env.local
+
+>>>>>>> Stashed changes
 # Testing
 .pytest_cache/
 .coverage

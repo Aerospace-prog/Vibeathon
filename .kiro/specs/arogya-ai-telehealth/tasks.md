@@ -3,11 +3,6 @@
 ## Task List
 
 - [x] 1. Initialize Next.js frontend project with dependencies
-
-
-
-
-
   - Create Next.js 14+ project with TypeScript and App Router
   - Install and configure Tailwind CSS
   - Set up shadcn/ui component library (Button, Textarea, Alert, Modal, Card, Input)
@@ -16,14 +11,7 @@
   - _Requirements: 1.1, 1.2_
 
 - [x] 2. Set up Supabase database schema
-
-
-
-
-
-
   - [x] 2.1 Create database migration script
-
     - Enable pgvector extension
     - Create patients table with columns: id, name, date_of_birth, preferred_language
     - Create consultations table with columns: id, patient_id, doctor_id, consultation_date, full_transcript, raw_soap_note, de_stigma_suggestions, approved
@@ -32,39 +20,26 @@
     - _Requirements: 10.1, 10.2, 10.3, 10.4_
 
   - [x] 2.2 Implement Row Level Security policies
-
     - Create RLS policy for patients table (doctors see only their patients)
     - Create RLS policies for consultations table (doctors access only their consultations)
     - Create RLS policies for medical_lexicon table (all read, doctors insert)
     - _Requirements: 1.3, 9.5_
 
 - [x] 3. Implement authentication pages and middleware
-
-
-
-
-
   - [x] 3.1 Create sign-in/sign-up page
-
-
     - Build authentication form component with email/password fields
     - Implement Supabase Auth sign-in and sign-up handlers
     - Add form validation and error display
     - Redirect to dashboard on successful authentication
     - _Requirements: 1.1, 1.2_
+    
   - [x] 3.2 Create authentication middleware
-
-
     - Implement middleware to check session on protected routes
     - Redirect unauthenticated users to sign-in page
     - Handle session refresh automatically
     - _Requirements: 1.4, 1.5_
 
 - [x] 4. Build dashboard page
-
-
-
-
   - Create dashboard layout with navigation
   - Fetch and display list of upcoming consultations from Supabase
   - Implement "Start New Call" button that creates consultation record and navigates to room
@@ -72,14 +47,6 @@
   - _Requirements: 9.1, 9.2_
 
 - [x] 5. Build patient records page
-
-
-
-
-
-
-
-
   - Fetch and display list of patients for authenticated doctor
   - Implement patient search/filter functionality
   - Display consultation history for selected patient

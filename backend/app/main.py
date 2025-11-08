@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 <<<<<<< HEAD
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -58,11 +59,38 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
 >>>>>>> 8c02c68a975937490994437626cbdcc74e65ea28
+=======
+"""
+FastAPI server for Arogya-AI Alert Engine and Emotion Analyzer
+
+This provides REST API and WebSocket endpoints for real-time emotion analysis
+and medical alert detection.
+"""
+
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Depends, Header
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import Optional, List, Dict
+from datetime import datetime
+import json
+
+from .alert_engine import AlertEngine, Alert
+from .emotion_analyzer import EmotionAnalyzer, EmotionResult
+from .database import DatabaseClient
+
+app = FastAPI(title="Arogya-AI Medical Intelligence API")
+
+# Enable CORS for frontend integration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://localhost:3001"],  # Next.js default ports
+>>>>>>> Stashed changes
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+<<<<<<< Updated upstream
 <<<<<<< HEAD
 @app.get("/health")
 async def health_check():
@@ -385,3 +413,343 @@ async def add_lexicon_term(term: LexiconTerm, doctor_id: Optional[str] = None):
             detail=f"Internal server error: {str(e)}"
         )
 >>>>>>> 8c02c68a975937490994437626cbdcc74e65ea28
+=======
+# Initialize services
+alert_engine = AlertEngine()
+emotion_analyzer = EmotionAnalyzer()
+db_client = DatabaseClient()
+
+# WebSocket connection manager
+class ConnectionManager:
+    """Manages WebSocket connections for real-time communication"""
+    
+    def __init__(self):
+        self.active_connections: Dict[str, WebSocket] = {}
+    
+    async def connect(self, user_id: str, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections[user_id] = websocket
+    
+    def disconnect(self, user_id: str):
+        if user_id in self.active_connections:
+            del self.active_connections[user_id]
+    
+    async def send_personal_message(self, message: dict, user_id: str):
+        if user_id in self.active_connections:
+            await self.active_connections[user_id].send_json(message)
+
+manager = ConnectionManager()
+
+
+class TranscriptRequest(BaseModel):
+    """Request model for transcript analysis"""
+    text: str
+    consultation_id: str
+    speaker_type: str  # "patient" or "doctor"
+
+
+class AlertResponse(BaseModel):
+    """Response model for alert detection"""
+    alert_detected: bool
+    alert: Optional[dict] = None
+    message: str
+
+
+class EmotionAnalysisRequest(BaseModel):
+    """Request model for emotion analysis simulation"""
+    emotion_type: str
+    confidence_score: float
+    user_id: str
+    consultation_id: Optional[str] = None
+
+
+class EmotionStatsResponse(BaseModel):
+    """Response model for emotion statistics"""
+    total_detections: int
+    distribution: Dict[str, float]
+    last_emotion: Optional[dict]
+    stats: List[dict]
+
+
+@app.get("/")
+async def root():
+    """Health check endpoint"""
+    return {
+        "status": "healthy",
+        "service": "Arogya-AI Medical Intelligence API",
+        "version": "2.0.0",
+        "features": ["alert_engine", "emotion_analyzer"]
+    }
+
+
+@app.get("/health")
+async def health_check():
+    """Detailed health check"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "services": {
+            "alert_engine": "operational",
+            "emotion_analyzer": "operational",
+            "database": "operational"
+        }
+    }
+
+
+# ============================================================================
+# EMOTION ANALYZER ENDPOINTS
+# ============================================================================
+
+@app.post("/api/emotions/log")
+async def log_emotion(request: EmotionAnalysisRequest):
+    """
+    Log an emotion detection (for testing/simulation).
+    
+    Args:
+        request: EmotionAnalysisRequest with emotion data
+    
+    Returns:
+        Success response with logged emotion
+    """
+    try:
+        result = await db_client.log_emotion(
+            user_id=request.user_id,
+            emotion_type=request.emotion_type,
+            confidence_score=request.confidence_score,
+            consultation_id=request.consultation_id
+        )
+        
+        return {
+            "success": True,
+            "message": "Emotion logged successfully",
+            "data": result
+        }
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/emotions/stats/{user_id}")
+async def get_emotion_stats(user_id: str):
+    """
+    Get emotion statistics for a user.
+    
+    Args:
+        user_id: ID of the user
+    
+    Returns:
+        Emotion statistics and summary
+    """
+    try:
+        summary = await db_client.get_emotion_summary(user_id)
+        return summary
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/emotions/recent/{user_id}")
+async def get_recent_emotions(user_id: str, limit: int = 50):
+    """
+    Get recent emotion detections for a user.
+    
+    Args:
+        user_id: ID of the user
+        limit: Maximum number of records to return
+    
+    Returns:
+        List of recent emotion logs
+    """
+    try:
+        emotions = await db_client.get_recent_emotions(user_id, limit)
+        return {
+            "success": True,
+            "count": len(emotions),
+            "emotions": emotions
+        }
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/emotions/consultation/{consultation_id}")
+async def get_consultation_emotions(consultation_id: str):
+    """
+    Get all emotions for a specific consultation.
+    
+    Args:
+        consultation_id: ID of the consultation
+    
+    Returns:
+        List of emotion logs for the consultation
+    """
+    try:
+        emotions = await db_client.get_consultation_emotions(consultation_id)
+        return {
+            "success": True,
+            "count": len(emotions),
+            "emotions": emotions
+        }
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/emotions/{user_id}")
+async def delete_user_emotions(user_id: str):
+    """
+    Delete all emotion logs for a user (GDPR compliance).
+    
+    Args:
+        user_id: ID of the user
+    
+    Returns:
+        Success response
+    """
+    try:
+        success = await db_client.delete_user_emotions(user_id)
+        
+        if success:
+            return {
+                "success": True,
+                "message": "All emotion data deleted successfully"
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to delete emotion data")
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.websocket("/ws/emotions/{user_id}")
+async def emotion_websocket(websocket: WebSocket, user_id: str):
+    """
+    WebSocket endpoint for real-time emotion updates.
+    
+    Clients connect and receive emotion updates in real-time.
+    Can also send simulated emotions for testing.
+    
+    Args:
+        websocket: WebSocket connection
+        user_id: ID of the user
+    """
+    await manager.connect(user_id, websocket)
+    
+    try:
+        while True:
+            # Receive message from client
+            data = await websocket.receive_json()
+            
+            message_type = data.get("type")
+            
+            if message_type == "emotion_update":
+                # Log emotion to database
+                emotion_data = data.get("data", {})
+                
+                await db_client.log_emotion(
+                    user_id=user_id,
+                    emotion_type=emotion_data.get("emotion_type"),
+                    confidence_score=emotion_data.get("confidence_score"),
+                    consultation_id=emotion_data.get("consultation_id")
+                )
+                
+                # Broadcast back to client
+                await manager.send_personal_message({
+                    "type": "emotion_logged",
+                    "data": emotion_data
+                }, user_id)
+            
+            elif message_type == "get_stats":
+                # Send current stats
+                stats = await db_client.get_emotion_summary(user_id)
+                await manager.send_personal_message({
+                    "type": "stats_update",
+                    "data": stats
+                }, user_id)
+    
+    except WebSocketDisconnect:
+        manager.disconnect(user_id)
+    except Exception as e:
+        print(f"WebSocket error: {e}")
+        manager.disconnect(user_id)
+
+
+# ============================================================================
+# ALERT ENGINE ENDPOINTS
+# ============================================================================
+
+
+@app.post("/analyze", response_model=AlertResponse)
+async def analyze_transcript(request: TranscriptRequest):
+    """
+    Analyze transcript text for critical medical symptoms.
+    
+    Args:
+        request: TranscriptRequest with text, consultation_id, and speaker_type
+    
+    Returns:
+        AlertResponse with alert detection results
+    """
+    try:
+        # Analyze the transcript
+        alert = await alert_engine.analyze_transcript(
+            text=request.text,
+            consultation_id=request.consultation_id,
+            speaker_type=request.speaker_type
+        )
+        
+        if alert:
+            return AlertResponse(
+                alert_detected=True,
+                alert=alert.to_dict(),
+                message=f"Critical symptom detected: {alert.symptom_type}"
+            )
+        else:
+            return AlertResponse(
+                alert_detected=False,
+                alert=None,
+                message="No critical symptoms detected"
+            )
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/clear-cache/{consultation_id}")
+async def clear_consultation_cache(consultation_id: str):
+    """
+    Clear alert cache for a specific consultation.
+    
+    Args:
+        consultation_id: ID of the consultation to clear
+    
+    Returns:
+        Success message
+    """
+    try:
+        alert_engine.clear_consultation_cache(consultation_id)
+        return {
+            "success": True,
+            "message": f"Cache cleared for consultation {consultation_id}"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/patterns")
+async def get_patterns():
+    """
+    Get all critical symptom patterns.
+    
+    Returns:
+        Dictionary of all symptom patterns
+    """
+    return {
+        "patterns": alert_engine.critical_patterns
+    }
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+>>>>>>> Stashed changes

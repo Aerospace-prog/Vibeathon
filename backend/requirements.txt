@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 fastapi==0.115.0
 uvicorn[standard]==0.32.0
 websockets==13.1
@@ -20,3 +21,24 @@ sentence-transformers==2.3.1
 openai==1.10.0
 python-dotenv==1.0.0
 pydantic==2.5.3
+=======
+# Core dependencies
+pydantic>=2.9.0  # Using newer version with Python 3.13 support
+fastapi==0.115.0  # For API endpoints
+uvicorn[standard]==0.32.0  # For running FastAPI server with WebSocket support
+websockets==12.0  # For WebSocket support
+python-dotenv==1.0.0  # For environment variables
+
+# Database
+supabase==2.3.0  # For database client
+postgrest==0.16.0  # Supabase dependency
+
+# Emotion analyzer dependencies
+numpy>=1.24.3  # Numerical operations
+librosa==0.10.1  # For emotion analyzer (audio feature extraction)
+soundfile==0.12.1  # For emotion analyzer (audio file handling)
+
+# Optional ML dependencies (uncomment if needed)
+# scikit-learn==1.3.0  # For emotion analyzer (ML utilities)
+# speechbrain==0.5.16  # Optional: for pre-trained emotion model
+>>>>>>> Stashed changes

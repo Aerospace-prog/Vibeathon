@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase-server'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { StartCallButton } from '@/components/dashboard/start-call-button'
+import AlertEngineSection from '@/components/dashboard/AlertEngineSection'
+import EmotionAnalyzerSection from '@/components/dashboard/EmotionAnalyzerSection'
 import { LogoutButton } from '@/components/dashboard/logout-button'
 import { AnimatedLogo } from '@/components/ui/animated-logo'
 
@@ -215,6 +217,12 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Alert Engine Testing Section */}
+        <AlertEngineSection />
+
+        {/* Emotion Analyzer Testing Section */}
+        <EmotionAnalyzerSection />
 
         {/* Upcoming Consultations */}
         <Card className="border-zinc-200/50 dark:border-zinc-800/50">

@@ -1,0 +1,319 @@
+# Implementation Plan: Enhanced Clinical Intelligence Features
+
+## Task List
+
+- [x] 1. Set up database schema for alerts and emotions
+  - [x] 1.1 Create database migration for new tables
+    - Create alerts table with columns: id, consultation_id, symptom_text, symptom_type, severity_score, acknowledged, acknowledged_at, created_at
+    - Create emotion_logs table with columns: id, consultation_id, emotion_type, confidence_score, created_at
+    - Add emotion_analysis_enabled column to patients table
+    - Create indexes on consultation_id, severity_score, and created_at columns
+    - _Requirements: 11.1, 12.5, 14.1, 16.2_
+  - [x] 1.2 Implement Row Level Security policies
+    - Create RLS policy for alerts table (doctors see only their consultation alerts)
+    - Create RLS policy for emotion_logs table (doctors see only their consultation emotion logs)
+    - _Requirements: 13.4, 16.2_
+
+- [x] 2. Implement Alert Engine backend module
+  - [x] 2.1 Create alert_engine.py with AlertEngine class
+    - Define CRITICAL_PATTERNS dictionary with symptom types, keywords, base severity, and intensifiers
+    - Implement __init__ method to load patterns and initialize deduplication cache
+    - _Requirements: 11.1, 11.2_
+  - [x] 2.2 Implement analyze_transcript method
+    - Write pattern matching logic using regex for each symptom type
+    - Implement context extraction around matched keywords
+    - Call _calculate_severity method for matched patterns
+    - Implement deduplication logic (check cache, 5-minute timeout)
+    - Return Alert object if severity >= 3, None otherwise
+    - _Requirements: 11.1, 11.3, 11.4_
+  - [x] 2.3 Implement _calculate_severity method
+    - Calculate base severity from pattern type
+    - Check for intensity words (severe, mild, sudden) and adjust score
+    - Check for duration mentions and adjust score
+    - Return final severity score (1-5)
+    - _Requirements: 11.3_
+  - [x] 2.4 Create Alert Pydantic model
+    - Define Alert model with symptom_text, symptom_type, severity_score, timestamp fields
+    - Add to_dict method for serialization
+    - _Requirements: 11.5_
+
+- [x] 3. Implement Emotion Analyzer backend module
+  - [x] 3.1 Create emotion_analyzer.py with EmotionAnalyzer class
+    - Implement __init__ method to load emotion classification model
+    - Define EMOTION_CATEGORIES dictionary with color and description mappings
+    - _Requirements: 14.1, 14.2, 15.2_
+  - [x] 3.2 Implement audio feature extraction
+    - Write _extract_features method to extract pitch (F0), energy (RMS), speech rate
+    - Extract MFCCs and spectral features using librosa
+    - Normalize features for model input
+    - _Requirements: 14.1_
+  - [x] 3.3 Implement emotion classification
+    - Write analyze_audio method accepting audio_chunk bytes
+    - Convert bytes to numpy array
+    - Call _extract_features on audio
+    - Run inference with emotion model
+    - Return EmotionResult with emotion_type and confidence_score
+    - _Requirements: 14.2, 14.3, 14.5_
+  - [x] 3.4 Create EmotionResult Pydantic model
+    - Define EmotionResult model with emotion_type, confidence_score, timestamp fields
+    - Add to_dict method for serialization
+    - _Requirements: 14.4_
+
+- [ ] 4. Extend database client with alert and emotion methods
+  - [ ] 4.1 Implement alert database methods
+    - Write create_alert method to insert alert record
+    - Write acknowledge_alert method to update acknowledged status and timestamp
+    - Write get_consultation_alerts method to retrieve all alerts for a consultation
+    - _Requirements: 12.1, 12.2, 12.5_
+  - [ ] 4.2 Implement emotion database methods
+    - Write log_emotion method to insert emotion snapshot
+    - Write get_emotion_logs method to retrieve emotion logs for a consultation with optional time range
+    - Write get_patient_emotion_trends method to calculate emotion distribution across consultations
+    - Write get_patient_for_consultation method to retrieve patient with emotion_analysis_enabled flag
+    - _Requirements: 14.1, 16.1, 16.4_
+
+- [ ] 5. Integrate Alert Engine and Emotion Analyzer into STT pipeline
+  - [ ] 5.1 Modify process_audio_stream function signature
+    - Add alert_engine and emotion_analyzer parameters
+    - _Requirements: 11.1, 14.1_
+  - [ ] 5.2 Implement alert detection logic
+    - After transcription, call alert_engine.analyze_transcript for patient speech
+    - If alert detected, call db_client.create_alert to store in database
+    - Add alert data to return dictionary
+    - _Requirements: 11.1, 11.4, 11.5_
+  - [ ] 5.3 Implement emotion analysis logic
+    - Check if patient has emotion_analysis_enabled flag
+    - If enabled, call emotion_analyzer.analyze_audio on patient audio chunks
+    - If confidence > 0.7, call db_client.log_emotion to store snapshot
+    - Add emotion data to return dictionary
+    - _Requirements: 14.1, 14.3, 14.4, 18.2, 18.3_
+
+- [ ] 6. Update WebSocket endpoint to broadcast alerts and emotions
+  - [ ] 6.1 Initialize Alert Engine and Emotion Analyzer in WebSocket handler
+    - Create AlertEngine and EmotionAnalyzer instances at connection start
+    - Pass instances to process_audio_stream function
+    - _Requirements: 11.5, 14.5_
+  - [ ] 6.2 Implement alert broadcasting
+    - Check if result contains alert data
+    - If alert exists and user_type is patient, broadcast alert message to doctor
+    - Use message type "alert" with alert data payload
+    - _Requirements: 11.5, 12.1_
+  - [ ] 6.3 Implement emotion broadcasting
+    - Check if result contains emotion data
+    - If emotion exists and user_type is patient, broadcast emotion_update message to doctor
+    - Use message type "emotion_update" with emotion data payload
+    - _Requirements: 14.5, 15.1_
+  - [ ] 6.4 Implement alert acknowledgment handling
+    - Listen for "acknowledge_alert" message type from frontend
+    - Call db_client.acknowledge_alert with alert_id
+    - _Requirements: 12.2, 12.3_
+
+- [ ] 7. Create API endpoints for alerts and emotions
+  - [ ] 7.1 Implement GET /consultation/{consultation_id}/alerts endpoint
+    - Verify user authorization (doctor owns consultation)
+    - Call db_client.get_consultation_alerts
+    - Return list of AlertResponse objects
+    - _Requirements: 13.1, 19.1_
+  - [ ] 7.2 Implement POST /consultation/{consultation_id}/alerts/{alert_id}/acknowledge endpoint
+    - Verify user authorization
+    - Call db_client.acknowledge_alert
+    - Return success response
+    - _Requirements: 12.2, 19.2_
+  - [ ] 7.3 Implement GET /consultation/{consultation_id}/emotions endpoint
+    - Verify user authorization
+    - Call db_client.get_emotion_logs
+    - Return list of EmotionLogResponse objects
+    - _Requirements: 16.1, 19.3_
+  - [ ] 7.4 Implement GET /patient/{patient_id}/emotion_trends endpoint
+    - Verify user authorization (doctor has consulted this patient)
+    - Call db_client.get_patient_emotion_trends
+    - Return EmotionTrendsResponse with distribution and high-distress consultations
+    - _Requirements: 16.4, 16.5, 19.4_
+  - [ ] 7.5 Implement GET /analytics/alerts endpoint
+    - Verify user authorization
+    - Query alerts for doctor's consultations with optional date range
+    - Calculate total_alerts, alerts_by_severity, alerts_by_type, average_acknowledgment_time
+    - Return AlertAnalyticsResponse
+    - _Requirements: 13.2, 13.3, 19.5_
+  - [ ] 7.6 Create Pydantic response models
+    - Define AlertResponse, EmotionLogResponse, EmotionTrendsResponse, AlertAnalyticsResponse models
+    - Add validation rules for all fields
+    - _Requirements: 19.1, 19.2, 19.3, 19.4, 19.5_
+
+- [ ] 8. Build AlertBanner frontend component
+  - [ ] 8.1 Create AlertBanner.tsx component
+    - Accept alert prop with id, symptomText, symptomType, severityScore, timestamp
+    - Accept onAcknowledge callback prop
+    - Implement color coding based on severity (red for 5, orange for 3-4, yellow for 1-2)
+    - Add pulsing animation for severity 5 alerts
+    - Display symptom text prominently with timestamp
+    - Add "Acknowledge" button that calls onAcknowledge
+    - _Requirements: 12.1, 12.2, 12.3_
+  - [ ] 8.2 Style AlertBanner component
+    - Position fixed at top of video call interface
+    - Use large, readable font
+    - Ensure high contrast for accessibility
+    - Add smooth entrance animation
+    - _Requirements: 12.1_
+
+- [ ] 9. Build AlertSidebar frontend component
+  - Create AlertSidebar.tsx component
+  - Accept consultationId and alerts array props
+  - Implement collapsible sidebar with toggle button
+  - Display list of all alerts with timestamps
+  - Show visual indicator for acknowledged vs active alerts
+  - Add scroll functionality for many alerts
+  - Call onAcknowledge callback when acknowledge button clicked
+  - _Requirements: 12.4_
+
+- [ ] 10. Build EmotionIndicator frontend component
+  - [ ] 10.1 Create EmotionIndicator.tsx component
+    - Accept emotion prop with type and confidence
+    - Implement circular indicator with color coding from EMOTION_CATEGORIES
+    - Display confidence percentage below indicator
+    - Add tooltip with emotion description on hover
+    - _Requirements: 15.1, 15.2, 15.4, 15.5_
+  - [ ] 10.2 Implement smooth transitions
+    - Add CSS transitions for color changes (1 second duration)
+    - Animate confidence percentage updates
+    - _Requirements: 15.3_
+
+- [ ] 11. Build EmotionTimeline frontend component
+  - Create EmotionTimeline.tsx component
+  - Accept consultationId and emotionLogs array props
+  - Implement line chart or area chart using Recharts or Chart.js
+  - Color-code segments based on emotion type
+  - Add hover tooltip showing exact emotion and timestamp
+  - Display time on x-axis and emotion categories on y-axis
+  - _Requirements: 16.3_
+
+- [ ] 12. Build EmotionTrends frontend component
+  - Create EmotionTrends.tsx component
+  - Accept patientId and trends data props
+  - Implement pie chart or bar chart showing emotion distribution
+  - Display list of high-distress consultations with links
+  - Add comparison with previous time period if data available
+  - _Requirements: 16.4, 16.5_
+
+- [ ] 13. Integrate alert and emotion features into VideoCallRoom component
+  - [ ] 13.1 Add state management for alerts and emotions
+    - Add alerts state array
+    - Add currentEmotion state
+    - Add showAlertSidebar boolean state
+    - _Requirements: 12.1, 15.1_
+  - [ ] 13.2 Implement WebSocket message handling for alerts
+    - Listen for "alert" message type
+    - Add alert to alerts state array
+    - Play alert sound based on severity (use Web Audio API)
+    - _Requirements: 11.5, 12.1_
+  - [ ] 13.3 Implement WebSocket message handling for emotions
+    - Listen for "emotion_update" message type
+    - Update currentEmotion state
+    - _Requirements: 14.5, 15.1_
+  - [ ] 13.4 Implement alert acknowledgment
+    - Write handleAcknowledgeAlert function
+    - Send "acknowledge_alert" message via WebSocket
+    - Update alert in local state to acknowledged
+    - _Requirements: 12.2, 12.3_
+  - [ ] 13.5 Render alert and emotion components
+    - Conditionally render AlertBanner for most recent unacknowledged alert
+    - Render AlertSidebar with toggle button
+    - Render EmotionIndicator near patient video feed (only for doctor view)
+    - _Requirements: 12.1, 12.4, 15.1_
+
+- [ ] 14. Integrate emotion features into SoapNoteReview component
+  - [ ] 14.1 Fetch emotion logs on component mount
+    - Call GET /consultation/{consultation_id}/emotions API
+    - Store emotion logs in state
+    - _Requirements: 17.1_
+  - [ ] 14.2 Display EmotionTimeline component
+    - Render EmotionTimeline with fetched emotion logs
+    - Position below SOAP note sections or in separate tab
+    - _Requirements: 16.3, 17.1_
+  - [ ] 14.3 Enhance SOAP note generation with emotion data
+    - Modify SOAP note generation request to include emotion summary flag
+    - Display emotion insights in Subjective section preview
+    - Show flag in Assessment if high distress detected
+    - Add toggle to include/exclude emotion data in final note
+    - _Requirements: 17.2, 17.3, 17.4, 17.5_
+
+- [ ] 15. Add patient emotion consent management
+  - [ ] 15.1 Create emotion consent notice component
+    - Build ConsentNotice.tsx modal component
+    - Display explanation of emotion analysis features
+    - Show before first consultation or in patient settings
+    - Add "Accept" and "Decline" buttons
+    - _Requirements: 18.1_
+  - [ ] 15.2 Implement emotion analysis toggle in patient settings
+    - Add toggle switch in patient profile/settings page
+    - Call API to update emotion_analysis_enabled field
+    - Show current consent status
+    - _Requirements: 18.2, 18.4_
+  - [ ] 15.3 Implement emotion data deletion
+    - Add "Delete Emotion Data" button in patient settings
+    - Show confirmation dialog
+    - Call API endpoint to delete historical emotion logs
+    - _Requirements: 18.5_
+
+- [ ] 16. Add alert and emotion analytics to dashboard
+  - Create analytics card component for dashboard
+  - Fetch alert statistics using GET /analytics/alerts endpoint
+  - Display total alerts, alerts by severity, alerts by type
+  - Show average acknowledgment time
+  - Add date range filter for analytics
+  - _Requirements: 13.2, 13.3_
+
+- [ ] 17. Implement error handling and loading states
+  - Add error boundaries for alert and emotion components
+  - Display loading spinners while fetching emotion logs and trends
+  - Show user-friendly error messages for API failures
+  - Implement fallback UI if emotion analysis unavailable
+  - Add toast notifications for alert acknowledgment success/failure
+  - _Requirements: 20.1, 20.2_
+
+- [ ] 18. Add dependencies and environment configuration
+  - [ ] 18.1 Update backend requirements.txt
+    - Add librosa==0.10.1 for audio feature extraction
+    - Add soundfile==0.12.1 for audio file handling
+    - Add scikit-learn==1.3.0 for ML utilities
+    - Add speechbrain==0.5.16 (optional for pre-trained emotion model)
+    - _Requirements: 14.1_
+  - [ ] 18.2 Configure environment variables
+    - Add ALERT_THRESHOLD_SEVERITY to backend .env
+    - Add ALERT_DEDUP_TIMEOUT to backend .env
+    - Add EMOTION_CONFIDENCE_THRESHOLD to backend .env
+    - Add EMOTION_ANALYSIS_ENABLED to backend .env
+    - Document variables in README
+    - _Requirements: 11.4, 14.4_
+
+- [ ]* 19. Write unit tests for backend modules
+  - [ ]* 19.1 Test Alert Engine
+    - Test pattern matching with positive cases (chest pain, breathing issues)
+    - Test pattern matching with negative cases (no symptoms)
+    - Test severity calculation with various contexts
+    - Test deduplication logic
+  - [ ]* 19.2 Test Emotion Analyzer
+    - Test feature extraction with sample audio files
+    - Test emotion classification with known emotion samples
+    - Test confidence score calculation
+  - [ ]* 19.3 Test database client methods
+    - Test create_alert and acknowledge_alert methods
+    - Test log_emotion and get_emotion_logs methods
+    - Test get_patient_emotion_trends calculation
+
+- [ ]* 20. Write integration tests
+  - [ ]* 20.1 Test alert flow end-to-end
+    - Send audio with critical symptom via WebSocket
+    - Verify alert created in database
+    - Verify alert broadcast to doctor
+    - Test alert acknowledgment
+  - [ ]* 20.2 Test emotion flow end-to-end
+    - Send audio via WebSocket
+    - Verify emotion logged in database
+    - Verify emotion update broadcast to doctor
+    - Test emotion trends calculation
+  - [ ]* 20.3 Test API endpoints
+    - Test GET /consultation/{id}/alerts with authorization
+    - Test GET /consultation/{id}/emotions with authorization
+    - Test GET /patient/{id}/emotion_trends with authorization
+    - Test GET /analytics/alerts with date range filter
