@@ -164,7 +164,7 @@ async def _generate_soap_note(transcript: str) -> Dict[str, str]:
     """
     try:
         # Initialize Gemini model (using gemini-2.5-flash for better availability)
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = genai.GenerativeModel('models/gemini-2.5-flash')
         
         # Format prompt with transcript
         prompt = SOAP_GENERATION_PROMPT.format(transcript=transcript)
@@ -222,7 +222,7 @@ async def _analyze_for_stigma(
     """
     try:
         # Initialize Gemini model (using gemini-2.5-flash for better availability)
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = genai.GenerativeModel('models/gemini-2.5-flash')
         
         # Format prompt with assessment and plan sections
         prompt = COMPASSION_REFLEX_PROMPT.format(

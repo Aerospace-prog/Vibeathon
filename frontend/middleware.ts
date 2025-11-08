@@ -39,10 +39,12 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Refresh session if expired
+  // Get authenticated user (secure method)
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+  } = await supabase.auth.getUser()
+  
+  const session = user ? { user } : null
 
   const isAuthPage = request.nextUrl.pathname.startsWith('/auth')
   const isProtectedRoute =

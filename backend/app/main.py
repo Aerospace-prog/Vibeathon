@@ -17,8 +17,12 @@ from .emotion_analyzer import EmotionAnalyzer, EmotionResult
 from .database import DatabaseClient
 from .stt_pipeline import get_stt_pipeline
 from .audio_converter_ffmpeg import get_audio_converter
+from .appointments import router as appointments_router
 
 app = FastAPI(title="Arogya-AI Medical Intelligence API")
+
+# Include appointment routes
+app.include_router(appointments_router)
 
 # Enable CORS for frontend integration
 app.add_middleware(
@@ -40,7 +44,7 @@ audio_converter = get_audio_converter()
 class ConnectionManager:
     """Manages WebSocket connections for real-time communication"""
     
-    def __init__(self):
+    def _init_(self):
         self.active_connections: Dict[str, WebSocket] = {}
     
     async def connect(self, user_id: str, websocket: WebSocket):
