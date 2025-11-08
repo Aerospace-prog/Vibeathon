@@ -14,8 +14,6 @@ interface DoctorProfile {
   email: string
   full_name: string | null
   specialization: string | null
-  license_number: string | null
-  phone: string | null
   years_of_experience: number | null
   consultation_fee: number | null
   is_available: boolean | null
@@ -62,8 +60,6 @@ export function DoctorProfileCard() {
       const updateData = {
         full_name: editedProfile.full_name,
         specialization: editedProfile.specialization,
-        license_number: editedProfile.license_number,
-        phone: editedProfile.phone,
         years_of_experience: editedProfile.years_of_experience ?? 0,
         consultation_fee: editedProfile.consultation_fee ?? 0,
         is_available: editedProfile.is_available ?? true,
@@ -186,31 +182,6 @@ export function DoctorProfileCard() {
             onChange={(e) => setEditedProfile({ ...editedProfile, specialization: e.target.value })}
             disabled={!isEditing}
             placeholder="e.g., General Physician, Cardiologist"
-          />
-        </div>
-
-        {/* License Number */}
-        <div className="space-y-2">
-          <Label htmlFor="license_number">License Number</Label>
-          <Input
-            id="license_number"
-            value={isEditing ? editedProfile.license_number || '' : profile.license_number || ''}
-            onChange={(e) => setEditedProfile({ ...editedProfile, license_number: e.target.value })}
-            disabled={!isEditing}
-            placeholder="Medical license number"
-          />
-        </div>
-
-        {/* Phone */}
-        <div className="space-y-2">
-          <Label htmlFor="phone">Phone</Label>
-          <Input
-            id="phone"
-            type="tel"
-            value={isEditing ? editedProfile.phone || '' : profile.phone || ''}
-            onChange={(e) => setEditedProfile({ ...editedProfile, phone: e.target.value })}
-            disabled={!isEditing}
-            placeholder="+91 98765 43210"
           />
         </div>
 

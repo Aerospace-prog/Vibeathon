@@ -418,7 +418,7 @@ export default function AuthPage() {
                 {/* Full Name - For both doctors and patients */}
                 <div className="space-y-2">
                   <label htmlFor="fullName" className="text-sm font-semibold text-teal-700 dark:text-teal-300">
-                    Full Name
+                    Full Name <span className="text-red-500">*</span>
                   </label>
                   <Input
                     id="fullName"
@@ -427,6 +427,7 @@ export default function AuthPage() {
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     disabled={loading}
+                    required
                     className="border-teal-200 dark:border-teal-800 focus:border-teal-500 focus:ring-teal-500"
                   />
                 </div>
@@ -436,7 +437,7 @@ export default function AuthPage() {
                   <>
                     <div className="space-y-2">
                       <label htmlFor="specialization" className="text-sm font-semibold text-teal-700 dark:text-teal-300">
-                        Specialization
+                        Specialization <span className="text-red-500">*</span>
                       </label>
                       <Input
                         id="specialization"
@@ -445,13 +446,14 @@ export default function AuthPage() {
                         value={specialization}
                         onChange={(e) => setSpecialization(e.target.value)}
                         disabled={loading}
+                        required
                         className="border-teal-200 dark:border-teal-800 focus:border-teal-500 focus:ring-teal-500"
                       />
                     </div>
 
                     <div className="space-y-2">
                       <label htmlFor="yearsOfExperience" className="text-sm font-semibold text-teal-700 dark:text-teal-300">
-                        Years of Experience
+                        Years of Experience <span className="text-red-500">*</span>
                       </label>
                       <Input
                         id="yearsOfExperience"
@@ -461,13 +463,14 @@ export default function AuthPage() {
                         value={yearsOfExperience}
                         onChange={(e) => setYearsOfExperience(e.target.value)}
                         disabled={loading}
+                        required
                         className="border-teal-200 dark:border-teal-800 focus:border-teal-500 focus:ring-teal-500"
                       />
                     </div>
 
                     <div className="space-y-2">
                       <label htmlFor="consultationFee" className="text-sm font-semibold text-teal-700 dark:text-teal-300">
-                        Consultation Fee (₹)
+                        Consultation Fee (₹) <span className="text-red-500">*</span>
                       </label>
                       <Input
                         id="consultationFee"
@@ -478,6 +481,7 @@ export default function AuthPage() {
                         value={consultationFee}
                         onChange={(e) => setConsultationFee(e.target.value)}
                         disabled={loading}
+                        required
                         className="border-teal-200 dark:border-teal-800 focus:border-teal-500 focus:ring-teal-500"
                       />
                     </div>
@@ -533,6 +537,11 @@ export default function AuthPage() {
                 setMode(mode === 'signin' ? 'signup' : 'signin')
                 setError('')
                 setSuccess('')
+                // Clear signup fields when switching modes
+                setFullName('')
+                setSpecialization('')
+                setYearsOfExperience('')
+                setConsultationFee('')
               }}
               className="w-full text-center text-sm font-medium text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors duration-200 py-2"
               disabled={loading}
