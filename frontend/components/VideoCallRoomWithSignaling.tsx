@@ -23,6 +23,7 @@ export default function VideoCallRoomWithSignaling({ consultationId, userType }:
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null)
   const localStreamRef = useRef<MediaStream | null>(null)
   const signalingWsRef = useRef<WebSocket | null>(null)
+  const hasCreatedOfferRef = useRef(false) // Prevent duplicate offers
   
   // State
   const [isVideoOn, setIsVideoOn] = useState(true)
@@ -39,7 +40,7 @@ export default function VideoCallRoomWithSignaling({ consultationId, userType }:
     return () => {
       cleanup()
     }
-  }, [])
+  }, [consultationId, userType])
 
   const initializeCall = async () => {
     try {
@@ -88,26 +89,34 @@ export default function VideoCallRoomWithSignaling({ consultationId, userType }:
         if (pc.connectionState === 'connected') {
           setIsConnected(true)
           setIsConnecting(false)
+          toast.success('Video call connected!')
         } else if (pc.connectionState === 'failed') {
           toast.error('Connection failed')
+          setIsConnecting(false)
+        } else if (pc.connectionState === 'disconnected') {
+          toast.warning('Peer disconnected')
+          setIsConnected(false)
         }
       }
       
-      // 6. Connect to signaling server
+      // 6. Handle ICE candidates
+      pc.onicecandidate = (event) => {
+        if (event.candidate && signalingWsRef.current?.readyState === WebSocket.OPEN) {
+          console.log('🧊 Sending ICE candidate')
+          signalingWsRef.current.send(JSON.stringify({
+            type: 'ice-candidate',
+            candidate: event.candidate
+          }))
+        }
+      }
+      
+      // 7. Connect to signaling server
       const signalingWs = new WebSocket(`${wsUrl}/ws/signaling/${consultationId}/${userType}`)
       signalingWsRef.current = signalingWs
       
       signalingWs.onopen = () => {
         console.log('✅ Signaling connected as', userType)
         toast.success('Signaling server connected')
-        
-        // Doctor creates offer after a short delay to ensure both are connected
-        if (userType === 'doctor') {
-          setTimeout(() => {
-            console.log('🎬 Doctor initiating call...')
-            createOffer()
-          }, 2000)
-        }
       }
       
       signalingWs.onmessage = async (event) => {
@@ -126,11 +135,11 @@ export default function VideoCallRoomWithSignaling({ consultationId, userType }:
             break
           case 'user-joined':
             console.log(`👤 ${message.userType} joined (${message.totalUsers} total)`)
-            toast.info(`${message.userType} joined the call`)
-            // If we're the doctor and patient just joined, create offer
-            if (userType === 'doctor' && message.userType === 'patient') {
+            // Only create offer once when patient joins
+            if (userType === 'doctor' && message.userType === 'patient' && !hasCreatedOfferRef.current) {
+              hasCreatedOfferRef.current = true
               console.log('🎬 Patient joined, doctor creating offer...')
-              setTimeout(() => createOffer(), 1500)
+              setTimeout(() => createOffer(), 1000)
             }
             break
         }
@@ -141,15 +150,8 @@ export default function VideoCallRoomWithSignaling({ consultationId, userType }:
         toast.error('Signaling connection error')
       }
       
-      // 7. Handle ICE candidates
-      pc.onicecandidate = (event) => {
-        if (event.candidate && signalingWs.readyState === WebSocket.OPEN) {
-          console.log('🧊 Sending ICE candidate')
-          signalingWs.send(JSON.stringify({
-            type: 'ice-candidate',
-            candidate: event.candidate
-          }))
-        }
+      signalingWs.onclose = () => {
+        console.log('🔌 Signaling disconnected')
       }
       
       setIsConnecting(false)
@@ -286,7 +288,7 @@ export default function VideoCallRoomWithSignaling({ consultationId, userType }:
 
   const endCall = () => {
     cleanup()
-    router.push('/patient/appointments')
+    router.push(userType === 'doctor' ? '/doctor/appointments' : '/patient/appointments')
   }
 
   return (
@@ -350,7 +352,8 @@ export default function VideoCallRoomWithSignaling({ consultationId, userType }:
                 autoPlay
                 playsInline
                 muted
-                className="w-full h-full object-cover mirror"
+                className="w-full h-full object-cover"
+                style={{ transform: 'scaleX(-1)' }}
               />
               <div className="absolute top-4 left-4 bg-slate-900/80 px-3 py-1 rounded-lg">
                 <span className="text-white text-sm">You</span>
@@ -394,12 +397,6 @@ export default function VideoCallRoomWithSignaling({ consultationId, userType }:
           </CardContent>
         </Card>
       </main>
-
-      <style jsx>{`
-        .mirror {
-          transform: scaleX(-1);
-        }
-      `}</style>
     </div>
   )
 }
