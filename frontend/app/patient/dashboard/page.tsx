@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { LogoutButton } from '@/components/dashboard/logout-button'
 import { AnimatedLogo } from '@/components/ui/animated-logo'
-import { Calendar, FileText, Video, Heart, Clock, User } from 'lucide-react'
+import { Calendar, FileText, Video, Heart, Clock, User, Camera } from 'lucide-react'
 
 // Extract patient name from email
 function extractPatientName(email: string): string {
@@ -53,6 +53,12 @@ export default async function PatientDashboard() {
                   className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
                 >
                   My Appointments
+                </Link>
+                <Link 
+                  href="/patient/medical-images" 
+                  className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                >
+                  AI Image Analysis
                 </Link>
                 <Link 
                   href="/patient/records" 
@@ -113,7 +119,7 @@ export default async function PatientDashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid gap-6 md:grid-cols-3 mb-8">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
           <Link href="/patient/book-appointment">
             <Card className="border-cyan-200/50 dark:border-cyan-800/50 hover:shadow-xl transition-all duration-300 group relative overflow-hidden cursor-pointer">
               <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -132,6 +138,29 @@ export default async function PatientDashboard() {
               <CardContent className="relative">
                 <Button className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white">
                   Book Now
+                </Button>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link href="/patient/medical-images">
+            <Card className="border-purple-200/50 dark:border-purple-800/50 hover:shadow-xl transition-all duration-300 group relative overflow-hidden cursor-pointer">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <CardHeader className="relative">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg blur-md opacity-50 group-hover:opacity-75 transition-opacity" />
+                    <div className="relative bg-gradient-to-br from-purple-500 to-pink-600 p-2 rounded-lg">
+                      <Camera className="w-5 h-5 text-white" />
+                    </div>
+                  </div>
+                  <CardTitle className="text-lg">AI Image Analysis</CardTitle>
+                </div>
+                <CardDescription>Upload & analyze skin conditions</CardDescription>
+              </CardHeader>
+              <CardContent className="relative">
+                <Button className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white">
+                  Analyze Now
                 </Button>
               </CardContent>
             </Card>
